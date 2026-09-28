@@ -153,15 +153,31 @@ export function initIdeas({ onMakeTask }) {
     searchTimer = setTimeout(refresh, SEARCH_MS);
   });
 
-  document.getElementById("add-idea").addEventListener("click", async () => {
+  const addForm = document.getElementById("idea-add");
+  addForm.addEventListener("keydown", (e) => {
+    // 日本語入力の変換確定の Enter で登録されないようにする
+    if (e.key === "Enter" && (e.isComposing || e.keyCode === 229)) e.preventDefault();
+  });
+  addForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = addForm.elements.namedItem("title");
+    const title = input.value.trim();
+    if (!title) return;
     try {
-      const idea = await api.createIdea({ title: "新しいアイディア", body: "" });
+      const idea = await api.createIdea({ title, body: "" });
+      input.value = "";
       await reveal(idea.id);
-      titleInput.select();
-      titleInput.focus();
+      toast(`「${idea.title}」を登録しました`);
+      // 続けて本文を書けるように本文欄へ移る
+      bodyInput.focus();
     } catch (err) {
       toast(err.message);
     }
+  });
+
+  document.getElementById("idea-save").addEventListener("click", async () => {
+    clearTimeout(saveTimer);
+    await save();
   });
 
   document.getElementById("idea-delete").addEventListener("click", async () => {

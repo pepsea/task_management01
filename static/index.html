@@ -37,8 +37,11 @@
           <h2>アイディア保管庫</h2>
           <span class="spacer"></span>
           <a href="archive.html" class="settings-link" title="アーカイブしたアイディアを見る">🗄 アーカイブ</a>
-          <button id="add-idea" type="button" aria-label="アイディアを追加">＋</button>
         </header>
+        <form id="idea-add" class="add-row">
+          <input name="title" placeholder="新しいアイディアのタイトル" aria-label="新しいアイディアのタイトル" required>
+          <button type="submit" class="primary">登録</button>
+        </form>
         <div class="idea-filters">
           <input id="idea-search" type="search" placeholder="検索（タイトル・本文）">
           <select id="idea-tag-filter" aria-label="タグで絞り込み">
@@ -49,6 +52,7 @@
         <div id="idea-editor" class="idea-editor" hidden>
           <div class="editor-head">
             <input id="idea-title" aria-label="タイトル">
+            <button id="idea-save" type="button" title="今すぐ保存（入力は自動でも保存されます）">保存</button>
             <button id="idea-to-task" type="button" class="primary">タスク化</button>
             <button id="idea-archive" type="button" title="保管庫から外してアーカイブ画面に移す">アーカイブ</button>
             <button id="idea-delete" type="button" class="danger">削除</button>
