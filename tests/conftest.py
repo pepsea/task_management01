@@ -11,18 +11,16 @@ def client(tmp_path, monkeypatch):
         yield c
 
 
-def register(client, area, *related):
-    """領域（と関連項目）をマスタに登録する。登録済みならそのまま使う。"""
-    areas = {a["name"]: a for a in client.get("/api/areas").json()}
-    if area in areas:
-        area_obj = areas[area]
-    else:
-        r = client.post("/api/areas", json={"name": area})
-        assert r.status_code == 201, r.text
-        area_obj = r.json()
-    existing = {x["name"] for x in area_obj["related"]}
+
+def register(client, area=None, *related):
+    """領域・関連項目をマスタに登録する（両者は独立）。登録済みならそのまま使う。"""
+    if area is not None:
+        names = {a["name"] for a in client.get("/api/areas").json()}
+        if area not in names:
+            r = client.post("/api/areas", json={"name": area})
+            assert r.status_code == 201, r.text
+    existing = {x["name"] for x in client.get("/api/related").json()}
     for name in related:
         if name not in existing:
-            r = client.post(f"/api/areas/{area_obj['id']}/related", json={"name": name})
+            r = client.post("/api/related", json={"name": name})
             assert r.status_code == 201, r.text
-    return area_obj["id"]

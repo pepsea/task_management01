@@ -29,8 +29,15 @@ def fetch_idea(conn: sqlite3.Connection, idea_id: int) -> dict:
 
 
 @router.get("/ideas", response_model=list[IdeaOut])
-def list_ideas(q: str | None = None, tag: str | None = None, conn: sqlite3.Connection = Depends(get_conn)):
-    conditions, params = [], []
+def list_ideas(
+    q: str | None = None,
+    tag: str | None = None,
+    archived: bool = False,
+    conn: sqlite3.Connection = Depends(get_conn),
+):
+    # 既定は保管庫（未アーカイブ）。archived=true でアーカイブ済みを、アーカイブした新しい順に返す
+    conditions = ["i.archived_at IS NOT NULL" if archived else "i.archived_at IS NULL"]
+    params = []
     if q and q.strip():
         pattern = _like_pattern(q.strip())
         conditions.append("(i.title LIKE ? ESCAPE '\\' OR i.body LIKE ? ESCAPE '\\')")
@@ -40,8 +47,9 @@ def list_ideas(q: str | None = None, tag: str | None = None, conn: sqlite3.Conne
             "i.id IN (SELECT it.idea_id FROM idea_tags it JOIN tags g ON g.id = it.tag_id WHERE g.name = ?)"
         )
         params.append(tag)
-    where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
-    ideas = [dict(r) for r in conn.execute(SELECT_IDEAS + where + " ORDER BY i.updated_at DESC, i.id DESC", params)]
+    where = f" WHERE {' AND '.join(conditions)}"
+    order = " ORDER BY i.archived_at DESC, i.id DESC" if archived else " ORDER BY i.updated_at DESC, i.id DESC"
+    ideas = [dict(r) for r in conn.execute(SELECT_IDEAS + where + order, params)]
     tags = tags_by_idea(conn, [i["id"] for i in ideas])
     for idea in ideas:
         idea["tags"] = tags[idea["id"]]
@@ -70,7 +78,12 @@ def update_idea(idea_id: int, body: IdeaUpdate, conn: sqlite3.Connection = Depen
     fetch_idea(conn, idea_id)
     changes = body.model_dump(exclude_unset=True)
     if any(value is None for value in changes.values()):
-        raise HTTPException(status_code=422, detail="title・body・tags は null にできません")
+        raise HTTPException(status_code=422, detail="title・body・tags・archived は null にできません")
+    # アーカイブ・復元は内容の更新ではないので updated_at は変えない
+    if "archived" in changes:
+        archived_at = now_iso() if changes.pop("archived") else None
+        conn.execute("UPDATE ideas SET archived_at = ? WHERE id = ?", (archived_at, idea_id))
+        conn.commit()
     tags = changes.pop("tags", None)
     if tags is not None:
         set_idea_tags(conn, idea_id, tags)

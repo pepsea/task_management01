@@ -26,13 +26,10 @@ def _check_idea_exists(conn: sqlite3.Connection, idea_id) -> None:
 
 
 def _check_master(conn: sqlite3.Connection, area: str, related: str) -> None:
-    row = conn.execute("SELECT id FROM areas WHERE name = ?", (area,)).fetchone()
-    if row is None:
+    if conn.execute("SELECT 1 FROM areas WHERE name = ?", (area,)).fetchone() is None:
         raise HTTPException(status_code=422, detail=f"領域「{area}」は登録されていません")
-    if related and conn.execute(
-        "SELECT 1 FROM related_items WHERE area_id = ? AND name = ?", (row[0], related)
-    ).fetchone() is None:
-        raise HTTPException(status_code=422, detail=f"関連項目「{related}」は領域「{area}」に登録されていません")
+    if related and conn.execute("SELECT 1 FROM related_items WHERE name = ?", (related,)).fetchone() is None:
+        raise HTTPException(status_code=422, detail=f"関連項目「{related}」は登録されていません")
 
 
 @router.get("/tasks", response_model=list[TaskOut])
@@ -51,10 +48,10 @@ def create_task(body: TaskCreate, conn: sqlite3.Connection = Depends(get_conn)):
     now = now_iso()
     cur = conn.execute(
         """INSERT INTO tasks (area, related, title, start_at, due_at, priority, done, idea_id, memo,
-                              created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                              today_on, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (body.area, body.related, body.title, body.start_at, body.due_at, body.priority,
-         int(body.done), body.idea_id, body.memo, now, now),
+         int(body.done), body.idea_id, body.memo, body.today_on, now, now),
     )
     conn.commit()
     return _get_task(conn, cur.lastrowid)

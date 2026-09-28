@@ -29,11 +29,18 @@ class TaskCreate(BaseModel):
     done: bool = False
     idea_id: Optional[int] = None
     memo: Annotated[str, StringConstraints(max_length=10000)] = ""
+    # 「今日のタスク」に選んだ日（YYYY-MM-DD）。その日だけ今日のタスクとして強調する
+    today_on: Optional[str] = None
 
     @field_validator("start_at", "due_at")
     @classmethod
     def validate_datetimes(cls, value):
         return check_datetime(value)
+
+    @field_validator("today_on")
+    @classmethod
+    def validate_today_on(cls, value):
+        return check_date(value)
 
     @model_validator(mode="after")
     def due_not_before_start(self):
@@ -52,11 +59,17 @@ class TaskUpdate(BaseModel):
     done: Optional[bool] = None
     idea_id: Optional[int] = None
     memo: Optional[Annotated[str, StringConstraints(max_length=10000)]] = None
+    today_on: Optional[str] = None
 
     @field_validator("start_at", "due_at")
     @classmethod
     def validate_datetimes(cls, value):
         return check_datetime(value)
+
+    @field_validator("today_on")
+    @classmethod
+    def validate_today_on(cls, value):
+        return check_date(value)
 
 
 class TaskOut(BaseModel):
@@ -70,6 +83,7 @@ class TaskOut(BaseModel):
     done: bool
     idea_id: Optional[int]
     memo: str
+    today_on: Optional[str]
     created_at: str
     updated_at: str
 
@@ -99,12 +113,14 @@ class IdeaUpdate(BaseModel):
     title: Optional[NonEmptyStr] = None
     body: Optional[str] = None
     tags: Optional[list[TagName]] = None
+    archived: Optional[bool] = None
 
 
 class IdeaOut(BaseModel):
     id: int
     title: str
     body: str
+    archived_at: Optional[str]
     created_at: str
     updated_at: str
     task_count: int
@@ -188,13 +204,6 @@ class MasterNameIn(BaseModel):
     name: MasterName
 
 
-class RelatedOut(BaseModel):
-    id: int
-    area_id: int
-    name: str
-
-
-class AreaOut(BaseModel):
+class MasterOut(BaseModel):
     id: int
     name: str
-    related: list[RelatedOut]

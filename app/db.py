@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS ideas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     body TEXT NOT NULL DEFAULT '',
+    archived_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -25,6 +26,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     done INTEGER NOT NULL DEFAULT 0,
     idea_id INTEGER REFERENCES ideas(id) ON DELETE SET NULL,
     memo TEXT NOT NULL DEFAULT '',
+    today_on TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -47,9 +49,7 @@ CREATE TABLE IF NOT EXISTS areas (
 );
 CREATE TABLE IF NOT EXISTS related_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    area_id INTEGER NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    UNIQUE (area_id, name)
+    name TEXT NOT NULL UNIQUE
 );
 CREATE TABLE IF NOT EXISTS tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,14 +70,31 @@ def _migrate(conn: sqlite3.Connection) -> None:
     task_columns = {row[1] for row in conn.execute("PRAGMA table_info(tasks)")}
     if "memo" not in task_columns:
         conn.execute("ALTER TABLE tasks ADD COLUMN memo TEXT NOT NULL DEFAULT ''")
+    if "today_on" not in task_columns:
+        conn.execute("ALTER TABLE tasks ADD COLUMN today_on TEXT")
+    idea_columns = {row[1] for row in conn.execute("PRAGMA table_info(ideas)")}
+    if "archived_at" not in idea_columns:
+        conn.execute("ALTER TABLE ideas ADD COLUMN archived_at TEXT")
+    # 関連項目が領域の下にあった旧スキーマを、領域と独立した一覧に作り直す
+    related_columns = {row[1] for row in conn.execute("PRAGMA table_info(related_items)")}
+    if "area_id" in related_columns:
+        conn.executescript(
+            """CREATE TABLE related_items_new (
+                   id INTEGER PRIMARY KEY AUTOINCREMENT,
+                   name TEXT NOT NULL UNIQUE
+               );
+               INSERT INTO related_items_new (name)
+                   SELECT name FROM related_items GROUP BY name ORDER BY MIN(id);
+               DROP TABLE related_items;
+               ALTER TABLE related_items_new RENAME TO related_items;"""
+        )
     # 登録制にする前に作られたタスクの領域・関連項目をマスタに取り込む
     conn.execute(
         "INSERT OR IGNORE INTO areas (name) SELECT area FROM tasks GROUP BY area ORDER BY MIN(id)"
     )
     conn.execute(
-        """INSERT OR IGNORE INTO related_items (area_id, name)
-           SELECT a.id, t.related FROM tasks t JOIN areas a ON a.name = t.area
-           WHERE t.related != '' GROUP BY a.id, t.related ORDER BY MIN(t.id)"""
+        """INSERT OR IGNORE INTO related_items (name)
+           SELECT related FROM tasks WHERE related != '' GROUP BY related ORDER BY MIN(id)"""
     )
 
 

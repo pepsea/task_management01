@@ -135,3 +135,18 @@ def test_memo_defaults_to_empty_and_can_be_updated(client):
 def test_patch_null_memo_rejected(client):
     t = make_task(client)
     assert client.patch(f"/api/tasks/{t['id']}", json={"memo": None}).status_code == 422
+
+
+def test_today_mark_set_and_clear(client):
+    t = make_task(client)
+    assert t["today_on"] is None
+    r = client.patch(f"/api/tasks/{t['id']}", json={"today_on": "2026-09-28"})
+    assert r.status_code == 200
+    assert r.json()["today_on"] == "2026-09-28"
+    r = client.patch(f"/api/tasks/{t['id']}", json={"today_on": None})
+    assert r.json()["today_on"] is None
+
+
+def test_today_mark_invalid_date_rejected(client):
+    t = make_task(client)
+    assert client.patch(f"/api/tasks/{t['id']}", json={"today_on": "9/28"}).status_code == 422
