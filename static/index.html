@@ -6,7 +6,8 @@
   <title>Task &amp; Idea Hub</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="main-page">
+  <nav id="app-tabs" class="app-tabs"></nav>
   <div class="app">
     <section class="pane pane-gantt">
       <header class="toolbar">
@@ -26,8 +27,6 @@
         <span class="spacer"></span>
         <button id="add-decision" type="button" class="decision-btn">＋ ディシジョン</button>
         <button id="add-task" type="button" class="primary">＋ タスク</button>
-        <a href="ideas.html" class="settings-link" title="アイディア保管庫">💡 アイディア</a>
-        <a href="settings.html" class="settings-link" title="領域・関連項目・タグの登録">⚙ 登録</a>
       </header>
       <div id="gantt" class="gantt"></div>
     </section>
@@ -96,6 +95,7 @@
 
   <div id="toast-area" class="toast-area" aria-live="polite"></div>
 
+  <script type="module" src="nav.js"></script>
   <script type="module" src="main.js"></script>
 </body>
 </html>

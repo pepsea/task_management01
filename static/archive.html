@@ -7,10 +7,12 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="settings-page">
+  <nav id="app-tabs" class="app-tabs"></nav>
   <header class="toolbar">
-    <a href="ideas.html" class="settings-link">← 💡 アイディア保管庫</a>
-    <a href="./" class="settings-link">← ガント</a>
-    <h1 class="settings-title">アイディアのアーカイブ</h1>
+    <div class="seg" role="group" aria-label="アーカイブの種類">
+      <button type="button" data-kind="ideas">アイディア</button>
+      <button type="button" data-kind="notes">メモ</button>
+    </div>
     <span id="archive-count" class="range-label"></span>
     <span class="spacer"></span>
     <input id="archive-search" type="search" placeholder="検索（タイトル・本文）" aria-label="検索">
@@ -22,6 +24,7 @@
   <main id="archive-list" class="archive-list"></main>
 
   <div id="toast-area" class="toast-area" aria-live="polite"></div>
+  <script type="module" src="nav.js"></script>
   <script type="module" src="archive.js"></script>
 </body>
 </html>

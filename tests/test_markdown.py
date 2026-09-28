@@ -71,3 +71,28 @@ def test_render_api(client):
 def test_code_block_indent_is_untouched():
     html = render_markdown("- a\n  - b\n\n```\n  - keep\n```")
     assert "  - keep" in html
+
+
+def test_table_right_after_list_without_blank_line():
+    html = render_markdown("# TEST\n* program\n|TEST|TEST|\n|--|--|\n|TES|TE|\n## test")
+    assert "<table>" in html
+    assert "<td>TES</td>" in html
+    assert "<li>program</li>" in html
+    assert "<h2>test</h2>" in html
+
+
+def test_table_right_after_paragraph_and_text_after_table():
+    html = render_markdown("説明\n| a | b |\n| --- | --- |\n| 1 | 2 |\n後の文")
+    assert "<p>説明</p>" in html
+    assert "<td>1</td>" in html
+    assert "<p>後の文</p>" in html
+
+
+def test_list_right_after_paragraph():
+    html = render_markdown("やること\n- 買い物\n- 掃除")
+    assert "<li>買い物</li>" in html
+
+
+def test_pipes_inside_code_block_are_not_a_table():
+    html = render_markdown("```\n| a | b |\n|---|---|\n```")
+    assert "<table>" not in html

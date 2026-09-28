@@ -51,6 +51,60 @@ def _normalize_list_indent(text: str) -> str:
     return "\n".join(lines)
 
 
+TABLE_SEPARATOR = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$")
+LIST_START = re.compile(r"^ {0,3}([-*+]|\d+\.)\s")
+
+
+def _is_table_row(line: str) -> bool:
+    return line.lstrip().startswith("|")
+
+
+def _separate_blocks(text: str) -> str:
+    """表・リスト・コードブロックの前後に空行を補う。
+
+    Python-Markdown は空行で区切られていないと、表やリストを前の段落・項目の続きとして扱う。
+    GitHub や Typora のように、空行なしで書いても表・リストになるようにする。
+    """
+    lines = text.splitlines()
+    out: list[str] = []
+    in_code = False
+    in_table = False
+    for i, line in enumerate(lines):
+        prev = out[-1] if out else ""
+        prev_blank = not prev.strip()
+        if line.lstrip().startswith("```"):
+            if not in_code and not prev_blank:
+                out.append("")
+            in_code = not in_code
+            in_table = False
+            out.append(line)
+            continue
+        if in_code:
+            out.append(line)
+            continue
+        next_line = lines[i + 1] if i + 1 < len(lines) else ""
+        starts_table = _is_table_row(line) and bool(TABLE_SEPARATOR.match(next_line))
+        if starts_table and not in_table:
+            if not prev_blank:
+                out.append("")
+            in_table = True
+        elif in_table and not _is_table_row(line):
+            in_table = False
+            if line.strip():
+                out.append("")
+        elif (
+            LIST_START.match(line)
+            and not prev_blank
+            and not LIST_START.match(prev)
+            and not prev.startswith((" ", "\t"))
+            and not _is_table_row(prev)
+        ):
+            # 段落のすぐ次の行から始まるリスト
+            out.append("")
+        out.append(line)
+    return "\n".join(out)
+
+
 class StrikethroughExtension(Extension):
     """~~text~~ を <del> にする（Python-Markdown 標準には無いため）。"""
 
@@ -70,7 +124,7 @@ def render_markdown(text: str) -> str:
     converter = markdown.Markdown(
         extensions=["tables", "fenced_code", "sane_lists", "nl2br", StrikethroughExtension()],
     )
-    html = TASK_ITEM.sub(_task_item, converter.convert(_normalize_list_indent(text)))
+    html = TASK_ITEM.sub(_task_item, converter.convert(_separate_blocks(_normalize_list_indent(text))))
     return nh3.clean(
         html,
         tags=ALLOWED_TAGS,

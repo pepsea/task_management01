@@ -7,10 +7,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="settings-page">
-  <header class="toolbar">
-    <a href="./" class="settings-link">← ガントに戻る</a>
-    <h1 class="settings-title">登録</h1>
-  </header>
+  <nav id="app-tabs" class="app-tabs"></nav>
 
   <main class="settings">
     <section class="settings-card">
@@ -32,12 +29,13 @@
     </section>
 
     <section class="settings-card">
-      <h2>アイディアのタグ</h2>
+      <h2>タグ（アイディア・メモ共通）</h2>
       <ul id="tag-list" class="tag-list"></ul>
     </section>
   </main>
 
   <div id="toast-area" class="toast-area" aria-live="polite"></div>
+  <script type="module" src="nav.js"></script>
   <script type="module" src="settings.js"></script>
 </body>
 </html>

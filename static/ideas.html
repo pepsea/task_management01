@@ -7,12 +7,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="settings-page ideas-page">
-  <header class="toolbar">
-    <a href="./" class="settings-link">← ガントに戻る</a>
-    <h1 class="settings-title">💡 アイディア保管庫</h1>
-    <span class="spacer"></span>
-    <a href="archive.html" class="settings-link" title="アーカイブしたアイディアを見る">🗄 アーカイブ</a>
-  </header>
+  <nav id="app-tabs" class="app-tabs"></nav>
 
   <main class="ideas-layout">
     <section class="settings-card ideas-list-card">
@@ -59,6 +54,7 @@
 
   <datalist id="tag-options"></datalist>
   <div id="toast-area" class="toast-area" aria-live="polite"></div>
+  <script type="module" src="nav.js"></script>
   <script type="module" src="ideasPage.js"></script>
 </body>
 </html>

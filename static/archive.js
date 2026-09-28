@@ -8,7 +8,10 @@ const list = document.getElementById("archive-list");
 const count = document.getElementById("archive-count");
 const search = document.getElementById("archive-search");
 const tagFilter = document.getElementById("archive-tag-filter");
+const kindButtons = document.querySelectorAll("[data-kind]");
 let searchTimer = null;
+// 表示中の種類（?kind=notes でメモ、それ以外はアイディア）
+let kind = new URLSearchParams(location.search).get("kind") === "notes" ? "notes" : "ideas";
 
 async function run(action) {
   try {
@@ -17,6 +20,25 @@ async function run(action) {
   } catch (err) {
     toast(err.message);
   }
+}
+
+function restoreButton(label, restore, message) {
+  return el("button", {
+    type: "button",
+    class: "primary",
+    onclick: () => run(async () => {
+      await restore();
+      toast(message);
+    }),
+  }, label);
+}
+
+function deleteButton(title, remove) {
+  return el("button", {
+    type: "button",
+    class: "danger",
+    onclick: () => confirm(`「${title}」を完全に削除しますか？`) && run(remove),
+  }, "削除");
 }
 
 function ideaCard(idea) {
@@ -32,19 +54,29 @@ function ideaCard(idea) {
       el("span", { class: "archive-dates" },
         `思いつき ${formatStamp(idea.created_at)} ・ 更新 ${formatStamp(idea.updated_at)} ・ アーカイブ ${formatStamp(idea.archived_at)}`),
       el("span", { class: "spacer" }),
-      el("button", {
-        type: "button",
-        class: "primary",
-        onclick: () => run(async () => {
-          await api.updateIdea(idea.id, { archived: false });
-          toast(`「${idea.title}」を保管庫に戻しました`);
-        }),
-      }, "保管庫に戻す"),
-      el("button", {
-        type: "button",
-        class: "danger",
-        onclick: () => confirm(`「${idea.title}」を完全に削除しますか？`) && run(() => api.deleteIdea(idea.id)),
-      }, "削除")));
+      restoreButton("保管庫に戻す", () => api.updateIdea(idea.id, { archived: false }), `「${idea.title}」を保管庫に戻しました`),
+      deleteButton(idea.title, () => api.deleteIdea(idea.id))));
+}
+
+function noteCard(note, html) {
+  const body = el("div", { class: "archive-body md-view" });
+  if (html) {
+    body.innerHTML = html; // サーバー側（nh3）で無害化済みの HTML
+    for (const a of body.querySelectorAll("a")) a.target = "_blank";
+  } else {
+    body.classList.add("empty");
+    body.textContent = "（本文なし）";
+  }
+  return el("article", { class: "archive-card" },
+    el("header", { class: "archive-card-head" }, el("h2", {}, note.title)),
+    note.tags.length ? el("div", { class: "tag-chips" }, note.tags.map((t) => tagChip(t))) : null,
+    body,
+    el("footer", { class: "archive-card-foot" },
+      el("span", { class: "archive-dates" },
+        `作成 ${formatStamp(note.created_at)} ・ 更新 ${formatStamp(note.updated_at)} ・ アーカイブ ${formatStamp(note.archived_at)}`),
+      el("span", { class: "spacer" }),
+      restoreButton("メモ帳に戻す", () => api.updateNote(note.id, { archived: false }), `「${note.title}」をメモ帳に戻しました`),
+      deleteButton(note.title, () => api.deleteNote(note.id))));
 }
 
 async function loadTags() {
@@ -58,20 +90,36 @@ async function loadTags() {
 }
 
 async function load() {
+  for (const button of kindButtons) button.classList.toggle("active", button.dataset.kind === kind);
   try {
     await loadTags();
-    const ideas = await api.listIdeas(search.value.trim(), tagFilter.value, true);
-    const filtered = search.value.trim() || tagFilter.value;
-    count.textContent = `${ideas.length} 件`;
-    list.replaceChildren(...(ideas.length
-      ? ideas.map(ideaCard)
+    const q = search.value.trim();
+    let cards;
+    if (kind === "notes") {
+      const notes = await api.listNotes(q, tagFilter.value, true);
+      const { html } = notes.length ? await api.renderMarkdown(notes.map((n) => n.body)) : { html: [] };
+      cards = notes.map((note, i) => noteCard(note, html[i]));
+    } else {
+      cards = (await api.listIdeas(q, tagFilter.value, true)).map(ideaCard);
+    }
+    const label = kind === "notes" ? "メモ" : "アイディア";
+    count.textContent = `${cards.length} 件`;
+    list.replaceChildren(...(cards.length
+      ? cards
       : [el("p", { class: "empty archive-empty" },
-        filtered ? "該当するアイディアはありません" : "アーカイブしたアイディアはまだありません。保管庫の「アーカイブ」で移せます。")]));
+        q || tagFilter.value ? `該当する${label}はありません` : `アーカイブした${label}はまだありません`)]));
   } catch (err) {
     toast(err.message);
   }
 }
 
+for (const button of kindButtons) {
+  button.addEventListener("click", () => {
+    kind = button.dataset.kind;
+    history.replaceState(null, "", kind === "notes" ? "?kind=notes" : location.pathname);
+    load();
+  });
+}
 search.addEventListener("input", () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(load, SEARCH_MS);
