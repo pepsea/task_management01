@@ -114,7 +114,11 @@ h2 { font-size: 14px; margin: 0; }
 .prio.mid { color: var(--mid); }
 .prio.low { color: var(--low); }
 .g-row.done .g-bar { opacity: .3; }
-.g-row.done .g-title { text-decoration: line-through; color: var(--muted); }
+.g-row.done .g-title { text-decoration: line-through; }
+/* 完了したタスクは行全体の文字・ラベル・印を薄くする */
+.g-row.done .g-cells > * { color: #b4b9c1; }
+.g-row.done .prio { color: #b4b9c1; }
+.g-row.done .area-chip, .g-row.done .memo-mark, .g-row.done .link-mark { opacity: .4; }
 .g-row.overdue .g-bar { outline: 2px solid var(--danger); outline-offset: 1px; }
 .g-row.overdue .g-due { color: var(--danger); font-weight: 600; }
 .g-row.due-soon .g-due { color: var(--danger); font-weight: 600; }
