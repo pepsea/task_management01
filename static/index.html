@@ -52,9 +52,13 @@
         <div id="idea-editor" class="idea-editor" hidden>
           <div class="editor-head">
             <input id="idea-title" aria-label="タイトル">
+            <button id="idea-close" type="button" title="閉じて一覧に戻る（Esc）" aria-label="閉じる">×</button>
+          </div>
+          <div class="editor-actions">
             <button id="idea-save" type="button" title="今すぐ保存（入力は自動でも保存されます）">保存</button>
             <button id="idea-to-task" type="button" class="primary">タスク化</button>
             <button id="idea-archive" type="button" title="保管庫から外してアーカイブ画面に移す">アーカイブ</button>
+            <span class="spacer"></span>
             <button id="idea-delete" type="button" class="danger">削除</button>
           </div>
           <div class="tag-editor">

@@ -29,7 +29,12 @@ export function initIdeas({ onMakeTask }) {
       return;
     }
     list.replaceChildren(...ideas.map((idea) =>
-      el("li", { class: idea.id === selectedId ? "selected" : "", onclick: () => select(idea.id) },
+      el("li", {
+        class: idea.id === selectedId ? "selected" : "",
+        title: idea.id === selectedId ? "もう一度クリックで閉じる" : "",
+        // 選択中のアイディアをもう一度クリックすると閉じる
+        onclick: () => (idea.id === selectedId ? close() : select(idea.id)),
+      },
         el("span", { class: "idea-title", title: idea.title }, idea.title),
         el("span", { class: "tag-chips" }, idea.tags.map((t) => tagChip(t))),
         idea.task_count > 0 ? el("span", { class: "badge", title: "タスク化済み" }, "✓") : null)));
@@ -128,6 +133,14 @@ export function initIdeas({ onMakeTask }) {
     }
   }
 
+  // 編集欄を閉じて一覧だけの表示に戻る。入力中の内容は先に保存する
+  async function close() {
+    await flushSave();
+    selectedId = null;
+    editor.hidden = true;
+    renderList();
+  }
+
   async function reveal(id) {
     search.value = "";
     tagFilter.value = "";
@@ -135,6 +148,10 @@ export function initIdeas({ onMakeTask }) {
     await select(id);
   }
 
+  document.getElementById("idea-close").addEventListener("click", close);
+  editor.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !e.isComposing) close();
+  });
   titleInput.addEventListener("input", scheduleSave);
   bodyInput.addEventListener("input", scheduleSave);
   tagFilter.addEventListener("change", refresh);
