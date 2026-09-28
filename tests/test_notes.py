@@ -61,15 +61,21 @@ def test_search_and_tag_filter(client):
     assert titles(client, q="100%") == []
 
 
-def test_pin_and_reorder(client):
-    a, b, c = make(client, "# A"), make(client, "# B"), make(client, "# C")
-    assert titles(client) == ["C", "B", "A"]
-    assert client.post("/api/notes/reorder", json={"ids": [a["id"], c["id"], b["id"]]}).status_code == 204
-    assert titles(client) == ["A", "C", "B"]
-    client.patch(f"/api/notes/{b['id']}", json={"pinned": True})
-    assert titles(client) == ["B", "A", "C"]
-    assert client.post("/api/notes/reorder", json={"ids": [a["id"], a["id"]]}).status_code == 422
-    assert client.post("/api/notes/reorder", json={"ids": [999]}).status_code == 404
+def test_list_is_sorted_by_date_with_pinned_first(client):
+    def note(title, day):
+        return client.post("/api/notes", json={"body": f"# {title}", "note_date": day}).json()
+
+    old = note("古い", "2026-09-01")
+    note("新しい", "2026-10-10")
+    note("中間", "2026-09-20")
+    note("中間2", "2026-09-20")
+    # 日付の新しい順。同じ日付は後から作ったものが上
+    assert titles(client) == ["新しい", "中間2", "中間", "古い"]
+    client.patch(f"/api/notes/{old['id']}", json={"pinned": True})
+    assert titles(client) == ["古い", "新しい", "中間2", "中間"]
+    # 日付を変えると並びも変わる
+    client.patch(f"/api/notes/{old['id']}", json={"pinned": False, "note_date": "2026-12-01"})
+    assert titles(client) == ["古い", "新しい", "中間2", "中間"]
 
 
 def test_archive_and_restore(client):

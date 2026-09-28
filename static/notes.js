@@ -1,7 +1,6 @@
 import { api } from "./api.js";
 import { createBlockEditor } from "./blockEditor.js";
 import { formatDateLabel, formatStamp } from "./dates.js";
-import { createSortable } from "./sortable.js";
 import { el, tagChip, toast } from "./ui.js";
 
 const AUTOSAVE_MS = 800;
@@ -28,24 +27,6 @@ const editor = createBlockEditor(document.getElementById("note-body"), {
   onInput: () => scheduleSave(),
 });
 
-const sortable = createSortable({
-  list,
-  getItems: () => notes,
-  setItems: (items) => {
-    notes = items;
-    renderList();
-  },
-  groupOf: (note) => note.pinned,
-  onReorder: async (ids) => {
-    try {
-      await api.reorderNotes(ids);
-    } catch (err) {
-      toast(err.message);
-    }
-    await refresh();
-  },
-});
-
 function setEditorVisible(visible) {
   editorPane.hidden = !visible;
   placeholder.hidden = visible;
@@ -60,10 +41,8 @@ function renderList() {
   list.replaceChildren(...notes.map((note) =>
     el("li", {
       class: `${note.id === selectedId ? "selected" : ""}${note.pinned ? " prioritized" : ""}`,
-      ...sortable(note),
       onclick: () => (note.id === selectedId ? close() : select(note.id)),
     },
-      el("span", { class: "drag-handle", title: "ドラッグで並べ替え", "aria-hidden": "true" }, "⋮⋮"),
       el("button", {
         type: "button",
         class: `star${note.pinned ? " on" : ""}`,

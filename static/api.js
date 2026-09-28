@@ -49,7 +49,6 @@ export const api = {
   createNote: (note) => request("POST", "/api/notes", note),
   updateNote: (id, patch) => request("PATCH", `/api/notes/${id}`, patch),
   deleteNote: (id) => request("DELETE", `/api/notes/${id}`),
-  reorderNotes: (ids) => request("POST", "/api/notes/reorder", { ids }),
   renderMarkdown: (blocks) => request("POST", "/api/markdown", { blocks }),
   listMemos: () => request("GET", "/api/brainstorm"),
   addMemo: (text) => request("POST", "/api/brainstorm", { text }),

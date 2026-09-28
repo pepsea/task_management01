@@ -289,10 +289,6 @@ class NoteOut(BaseModel):
     tags: list[TagOut]
 
 
-class ReorderIn(BaseModel):
-    ids: Annotated[list[int], Field(min_length=1)]
-
-
 class MarkdownIn(BaseModel):
     blocks: Annotated[list[Annotated[str, StringConstraints(max_length=200000)]], Field(max_length=2000)]
 
