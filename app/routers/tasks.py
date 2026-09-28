@@ -8,7 +8,7 @@ from app.models import TaskCreate, TaskOut, TaskUpdate
 router = APIRouter(prefix="/api", tags=["tasks"])
 
 # PATCH で null を受け付けない列（idea_id だけは null で紐づけ解除できる）
-NOT_NULL_FIELDS = {"area", "related", "title", "start_at", "due_at", "priority", "done"}
+NOT_NULL_FIELDS = {"area", "related", "title", "start_at", "due_at", "priority", "done", "memo"}
 
 
 def _get_task(conn: sqlite3.Connection, task_id: int) -> dict:
@@ -25,6 +25,16 @@ def _check_idea_exists(conn: sqlite3.Connection, idea_id) -> None:
         raise HTTPException(status_code=422, detail="元アイディアが存在しません")
 
 
+def _check_master(conn: sqlite3.Connection, area: str, related: str) -> None:
+    row = conn.execute("SELECT id FROM areas WHERE name = ?", (area,)).fetchone()
+    if row is None:
+        raise HTTPException(status_code=422, detail=f"領域「{area}」は登録されていません")
+    if related and conn.execute(
+        "SELECT 1 FROM related_items WHERE area_id = ? AND name = ?", (row[0], related)
+    ).fetchone() is None:
+        raise HTTPException(status_code=422, detail=f"関連項目「{related}」は領域「{area}」に登録されていません")
+
+
 @router.get("/tasks", response_model=list[TaskOut])
 def list_tasks(area: str | None = None, conn: sqlite3.Connection = Depends(get_conn)):
     if area:
@@ -34,21 +44,17 @@ def list_tasks(area: str | None = None, conn: sqlite3.Connection = Depends(get_c
     return [dict(r) for r in rows]
 
 
-@router.get("/areas", response_model=list[str])
-def list_areas(conn: sqlite3.Connection = Depends(get_conn)):
-    return [r[0] for r in conn.execute("SELECT DISTINCT area FROM tasks ORDER BY area")]
-
-
 @router.post("/tasks", response_model=TaskOut, status_code=201)
 def create_task(body: TaskCreate, conn: sqlite3.Connection = Depends(get_conn)):
+    _check_master(conn, body.area, body.related)
     _check_idea_exists(conn, body.idea_id)
     now = now_iso()
     cur = conn.execute(
-        """INSERT INTO tasks (area, related, title, start_at, due_at, priority, done, idea_id,
+        """INSERT INTO tasks (area, related, title, start_at, due_at, priority, done, idea_id, memo,
                               created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (body.area, body.related, body.title, body.start_at, body.due_at, body.priority,
-         int(body.done), body.idea_id, now, now),
+         int(body.done), body.idea_id, body.memo, now, now),
     )
     conn.commit()
     return _get_task(conn, cur.lastrowid)
@@ -64,6 +70,8 @@ def update_task(task_id: int, body: TaskUpdate, conn: sqlite3.Connection = Depen
     if "idea_id" in changes:
         _check_idea_exists(conn, changes["idea_id"])
     merged = {**current, **changes}
+    if "area" in changes or "related" in changes:
+        _check_master(conn, merged["area"], merged["related"])
     if merged["due_at"] < merged["start_at"]:
         raise HTTPException(status_code=422, detail="期限は開始日時以降にしてください")
     if not changes:

@@ -28,6 +28,7 @@ class TaskCreate(BaseModel):
     priority: Priority
     done: bool = False
     idea_id: Optional[int] = None
+    memo: Annotated[str, StringConstraints(max_length=10000)] = ""
 
     @field_validator("start_at", "due_at")
     @classmethod
@@ -50,6 +51,7 @@ class TaskUpdate(BaseModel):
     priority: Optional[Priority] = None
     done: Optional[bool] = None
     idea_id: Optional[int] = None
+    memo: Optional[Annotated[str, StringConstraints(max_length=10000)]] = None
 
     @field_validator("start_at", "due_at")
     @classmethod
@@ -67,18 +69,36 @@ class TaskOut(BaseModel):
     priority: Priority
     done: bool
     idea_id: Optional[int]
+    memo: str
     created_at: str
     updated_at: str
+
+
+TagName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)]
+ColorStr = Annotated[str, StringConstraints(pattern=r"^#[0-9a-fA-F]{6}$")]
+
+
+class TagOut(BaseModel):
+    id: int
+    name: str
+    color: str
+
+
+class TagUpdate(BaseModel):
+    name: Optional[TagName] = None
+    color: Optional[ColorStr] = None
 
 
 class IdeaCreate(BaseModel):
     title: NonEmptyStr
     body: str = ""
+    tags: list[TagName] = []
 
 
 class IdeaUpdate(BaseModel):
     title: Optional[NonEmptyStr] = None
     body: Optional[str] = None
+    tags: Optional[list[TagName]] = None
 
 
 class IdeaOut(BaseModel):
@@ -88,6 +108,7 @@ class IdeaOut(BaseModel):
     created_at: str
     updated_at: str
     task_count: int
+    tags: list[TagOut]
 
 
 class BrainstormCreate(BaseModel):
@@ -158,3 +179,22 @@ class DecisionOut(BaseModel):
     time: Optional[str]
     created_at: str
     updated_at: str
+
+
+MasterName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)]
+
+
+class MasterNameIn(BaseModel):
+    name: MasterName
+
+
+class RelatedOut(BaseModel):
+    id: int
+    area_id: int
+    name: str
+
+
+class AreaOut(BaseModel):
+    id: int
+    name: str
+    related: list[RelatedOut]

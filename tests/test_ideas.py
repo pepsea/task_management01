@@ -1,3 +1,13 @@
+import pytest
+
+from tests.conftest import register
+
+
+@pytest.fixture(autouse=True)
+def masters(client):
+    register(client, "仕事")
+
+
 def make_idea(client, title="アイディアA", body=""):
     r = client.post("/api/ideas", json={"title": title, "body": body})
     assert r.status_code == 201, r.text

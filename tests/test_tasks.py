@@ -1,5 +1,15 @@
 import pytest
 
+from tests.conftest import register
+
+
+@pytest.fixture(autouse=True)
+def masters(client):
+    register(client, "仕事", "PJ-A")
+    register(client, "プライベート")
+    register(client, "a")
+    register(client, "b")
+
 
 def make_task(client, **overrides):
     payload = {
@@ -32,15 +42,9 @@ def test_list_is_ordered_by_start(client):
 
 def test_filter_by_area(client):
     make_task(client, area="仕事")
-    p = make_task(client, area="プライベート")
+    p = make_task(client, area="プライベート", related="")
     assert client.get("/api/tasks", params={"area": "プライベート"}).json() == [p]
 
-
-def test_areas_are_distinct_and_sorted(client):
-    make_task(client, area="b")
-    make_task(client, area="a")
-    make_task(client, area="b")
-    assert client.get("/api/areas").json() == ["a", "b"]
 
 
 def test_patch_updates_fields(client):
@@ -117,3 +121,17 @@ def test_unknown_idea_id_rejected(client):
         "start_at": "2026-10-01T09:00", "due_at": "2026-10-01T10:00", "idea_id": 999,
     })
     assert r.status_code == 422
+
+
+def test_memo_defaults_to_empty_and_can_be_updated(client):
+    t = make_task(client)
+    assert t["memo"] == ""
+    r = client.patch(f"/api/tasks/{t['id']}", json={"memo": "先方の要望:\n・図を多めに"})
+    assert r.status_code == 200
+    assert r.json()["memo"] == "先方の要望:\n・図を多めに"
+    assert make_task(client, memo="初期メモ")["memo"] == "初期メモ"
+
+
+def test_patch_null_memo_rejected(client):
+    t = make_task(client)
+    assert client.patch(f"/api/tasks/{t['id']}", json={"memo": None}).status_code == 422
