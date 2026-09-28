@@ -1,6 +1,7 @@
 import { api } from "./api.js";
 import { createBlockEditor } from "./blockEditor.js";
 import { formatDateLabel, formatStamp } from "./dates.js";
+import { exportNote } from "./noteExport.js";
 import { createSortable } from "./sortable.js";
 import { el, tagChip, toast } from "./ui.js";
 
@@ -248,6 +249,17 @@ document.getElementById("note-delete").addEventListener("click", async () => {
 });
 
 document.getElementById("note-close").addEventListener("click", close);
+
+document.getElementById("note-export").addEventListener("click", async () => {
+  if (selectedId === null) return;
+  // 入力中の内容を保存してから、最新の内容で書き出す
+  await flushSave();
+  try {
+    exportNote(await api.getNote(selectedId));
+  } catch (err) {
+    toast(err.message);
+  }
+});
 
 titleInput.addEventListener("input", scheduleSave);
 titleInput.addEventListener("keydown", (e) => {
