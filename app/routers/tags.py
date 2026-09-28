@@ -2,14 +2,11 @@ import sqlite3
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 
+from app.colors import next_color
 from app.db import get_conn
 from app.models import TagOut, TagUpdate
 
 router = APIRouter(prefix="/api", tags=["tags"])
-
-# 新しいタグには、この順で使われている数が少ない色を割り当てる
-TAG_COLORS = ["#2563eb", "#16a34a", "#dc2626", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#4b5563"]
-
 
 def _get_tag(conn: sqlite3.Connection, tag_id: int) -> dict:
     row = conn.execute("SELECT id, name, color FROM tags WHERE id = ?", (tag_id,)).fetchone()
@@ -18,19 +15,11 @@ def _get_tag(conn: sqlite3.Connection, tag_id: int) -> dict:
     return dict(row)
 
 
-def _next_color(conn: sqlite3.Connection) -> str:
-    usage = {color: 0 for color in TAG_COLORS}
-    for (color,) in conn.execute("SELECT color FROM tags"):
-        if color in usage:
-            usage[color] += 1
-    return min(TAG_COLORS, key=lambda c: usage[c])
-
-
 def get_or_create_tag(conn: sqlite3.Connection, name: str) -> int:
     row = conn.execute("SELECT id FROM tags WHERE name = ?", (name,)).fetchone()
     if row is not None:
         return row[0]
-    cur = conn.execute("INSERT INTO tags (name, color) VALUES (?, ?)", (name, _next_color(conn)))
+    cur = conn.execute("INSERT INTO tags (name, color) VALUES (?, ?)", (name, next_color(conn, "tags")))
     return cur.lastrowid
 
 

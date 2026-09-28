@@ -48,7 +48,12 @@ def list_ideas(
         )
         params.append(tag)
     where = f" WHERE {' AND '.join(conditions)}"
-    order = " ORDER BY i.archived_at DESC, i.id DESC" if archived else " ORDER BY i.updated_at DESC, i.id DESC"
+    # 保管庫は「優先」を先頭に、その中で更新の新しい順
+    order = (
+        " ORDER BY i.archived_at DESC, i.id DESC"
+        if archived
+        else " ORDER BY i.prioritized DESC, i.updated_at DESC, i.id DESC"
+    )
     ideas = [dict(r) for r in conn.execute(SELECT_IDEAS + where + order, params)]
     tags = tags_by_idea(conn, [i["id"] for i in ideas])
     for idea in ideas:
@@ -78,7 +83,13 @@ def update_idea(idea_id: int, body: IdeaUpdate, conn: sqlite3.Connection = Depen
     fetch_idea(conn, idea_id)
     changes = body.model_dump(exclude_unset=True)
     if any(value is None for value in changes.values()):
-        raise HTTPException(status_code=422, detail="title・body・tags・archived は null にできません")
+        raise HTTPException(status_code=422, detail="title・body・tags・archived・prioritized は null にできません")
+    # 優先の切り替えも内容の更新ではないので updated_at は変えない
+    if "prioritized" in changes:
+        conn.execute(
+            "UPDATE ideas SET prioritized = ? WHERE id = ?", (int(changes.pop("prioritized")), idea_id)
+        )
+        conn.commit()
     # アーカイブ・復元は内容の更新ではないので updated_at は変えない
     if "archived" in changes:
         archived_at = now_iso() if changes.pop("archived") else None

@@ -20,7 +20,7 @@ def names(client, path):
 def test_create_area_and_related_independently(client):
     r = client.post("/api/areas", json={"name": "仕事"})
     assert r.status_code == 201
-    assert set(r.json()) == {"id", "name"}
+    assert set(r.json()) == {"id", "name", "color"}
     r = client.post("/api/related", json={"name": "PJ-A"})
     assert r.status_code == 201
     assert set(r.json()) == {"id", "name"}
@@ -181,3 +181,51 @@ def test_hierarchical_related_table_is_migrated(tmp_path, monkeypatch):
     conn.close()
     assert "area_id" not in columns
     assert related == ["PJ-A", "共通"]
+
+
+def test_area_gets_distinct_auto_color(client):
+    colors = [client.post("/api/areas", json={"name": n}).json()["color"] for n in ["a", "b", "c"]]
+    assert all(c.startswith("#") and len(c) == 7 for c in colors)
+    assert len(set(colors)) == 3
+    assert [a["color"] for a in client.get("/api/areas").json()] == colors
+
+
+def test_area_color_can_be_changed(client):
+    area = client.post("/api/areas", json={"name": "仕事"}).json()
+    r = client.patch(f"/api/areas/{area['id']}", json={"color": "#16a34a"})
+    assert r.status_code == 200
+    assert r.json() == {"id": area["id"], "name": "仕事", "color": "#16a34a"}
+
+
+def test_area_rename_keeps_color(client):
+    area = client.post("/api/areas", json={"name": "仕事"}).json()
+    r = client.patch(f"/api/areas/{area['id']}", json={"name": "本業"})
+    assert r.json()["color"] == area["color"]
+
+
+def test_invalid_area_color_rejected(client):
+    area = client.post("/api/areas", json={"name": "仕事"}).json()
+    assert client.patch(f"/api/areas/{area['id']}", json={"color": "blue"}).status_code == 422
+    assert client.patch(f"/api/areas/{area['id']}", json={"color": None}).status_code == 422
+
+
+def test_related_has_no_color(client):
+    assert "color" not in client.post("/api/related", json={"name": "PJ-A"}).json()
+
+
+def test_existing_areas_get_colors_on_startup(tmp_path, monkeypatch):
+    path = tmp_path / "old.db"
+    conn = sqlite3.connect(path)
+    conn.executescript(
+        """CREATE TABLE areas (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE);
+           INSERT INTO areas (name) VALUES ('仕事'), ('プライベート');"""
+    )
+    conn.commit()
+    conn.close()
+    monkeypatch.setenv("APP_DB_PATH", str(path))
+    init_db()
+    conn = sqlite3.connect(path)
+    colors = [r[0] for r in conn.execute("SELECT color FROM areas ORDER BY id")]
+    conn.close()
+    assert all(c and c.startswith("#") for c in colors)
+    assert colors[0] != colors[1]

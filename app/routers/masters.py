@@ -2,21 +2,22 @@ import sqlite3
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 
+from app.colors import next_color
 from app.db import get_conn
-from app.models import MasterNameIn, MasterOut
+from app.models import AreaOut, AreaUpdate, MasterNameIn, MasterOut
 
 router = APIRouter(prefix="/api", tags=["masters"])
 
 # 領域と関連項目は独立したマスタ。どちらも「表名・タスクの列名・画面での呼び名」だけが違う
 MASTERS = {
-    "areas": {"table": "areas", "task_column": "area", "label": "領域"},
-    "related": {"table": "related_items", "task_column": "related", "label": "関連項目"},
+    "areas": {"table": "areas", "task_column": "area", "label": "領域", "columns": "id, name, color"},
+    "related": {"table": "related_items", "task_column": "related", "label": "関連項目", "columns": "id, name"},
 }
 
 
 def _get(conn: sqlite3.Connection, kind: str, item_id: int) -> dict:
     m = MASTERS[kind]
-    row = conn.execute(f"SELECT id, name FROM {m['table']} WHERE id = ?", (item_id,)).fetchone()
+    row = conn.execute(f"SELECT {m['columns']} FROM {m['table']} WHERE id = ?", (item_id,)).fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail=f"{m['label']}が見つかりません")
     return dict(row)
@@ -31,12 +32,16 @@ def _check_unique(conn: sqlite3.Connection, kind: str, name: str, exclude_id: in
 
 
 def _list(conn, kind):
-    return [dict(r) for r in conn.execute(f"SELECT id, name FROM {MASTERS[kind]['table']} ORDER BY id")]
+    m = MASTERS[kind]
+    return [dict(r) for r in conn.execute(f"SELECT {m['columns']} FROM {m['table']} ORDER BY id")]
 
 
 def _create(conn, kind, name):
     _check_unique(conn, kind, name)
-    cur = conn.execute(f"INSERT INTO {MASTERS[kind]['table']} (name) VALUES (?)", (name,))
+    if kind == "areas":
+        cur = conn.execute("INSERT INTO areas (name, color) VALUES (?, ?)", (name, next_color(conn, "areas")))
+    else:
+        cur = conn.execute(f"INSERT INTO {MASTERS[kind]['table']} (name) VALUES (?)", (name,))
     conn.commit()
     return _get(conn, kind, cur.lastrowid)
 
@@ -69,19 +74,28 @@ def _delete(conn, kind, item_id):
     return Response(status_code=204)
 
 
-@router.get("/areas", response_model=list[MasterOut])
+@router.get("/areas", response_model=list[AreaOut])
 def list_areas(conn: sqlite3.Connection = Depends(get_conn)):
     return _list(conn, "areas")
 
 
-@router.post("/areas", response_model=MasterOut, status_code=201)
+@router.post("/areas", response_model=AreaOut, status_code=201)
 def create_area(body: MasterNameIn, conn: sqlite3.Connection = Depends(get_conn)):
     return _create(conn, "areas", body.name)
 
 
-@router.patch("/areas/{item_id}", response_model=MasterOut)
-def rename_area(item_id: int, body: MasterNameIn, conn: sqlite3.Connection = Depends(get_conn)):
-    return _rename(conn, "areas", item_id, body.name)
+@router.patch("/areas/{item_id}", response_model=AreaOut)
+def update_area(item_id: int, body: AreaUpdate, conn: sqlite3.Connection = Depends(get_conn)):
+    changes = body.model_dump(exclude_unset=True)
+    if any(value is None for value in changes.values()):
+        raise HTTPException(status_code=422, detail="name と color は空にできません")
+    area = _get(conn, "areas", item_id)
+    if "color" in changes:
+        conn.execute("UPDATE areas SET color = ? WHERE id = ?", (changes["color"], item_id))
+        conn.commit()
+    if "name" in changes:
+        return _rename(conn, "areas", item_id, changes["name"])
+    return _get(conn, "areas", item_id) if changes else area
 
 
 @router.delete("/areas/{item_id}", status_code=204)

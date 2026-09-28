@@ -83,3 +83,43 @@ def test_existing_db_gets_archived_at_column(tmp_path, monkeypatch):
     conn = sqlite3.connect(path)
     assert conn.execute("SELECT archived_at FROM ideas").fetchone() == (None,)
     conn.close()
+
+
+def test_idea_priority_flag(client):
+    a = make_idea(client, "A")
+    assert a["prioritized"] is False
+    r = client.patch(f"/api/ideas/{a['id']}", json={"prioritized": True})
+    assert r.status_code == 200
+    assert r.json()["prioritized"] is True
+    assert client.patch(f"/api/ideas/{a['id']}", json={"prioritized": None}).status_code == 422
+
+
+def test_prioritized_ideas_listed_first(client):
+    a = make_idea(client, "A")
+    make_idea(client, "B")
+    make_idea(client, "C")
+    client.patch(f"/api/ideas/{a['id']}", json={"prioritized": True})
+    assert titles(client) == ["A", "C", "B"]
+
+
+def test_priority_toggle_keeps_updated_at(client):
+    a = make_idea(client, "A")
+    after = client.patch(f"/api/ideas/{a['id']}", json={"prioritized": True}).json()
+    assert after["updated_at"] == a["updated_at"]
+
+
+def test_existing_db_gets_prioritized_column(tmp_path, monkeypatch):
+    path = tmp_path / "old2.db"
+    conn = sqlite3.connect(path)
+    conn.execute(
+        """CREATE TABLE ideas (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,
+           body TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)"""
+    )
+    conn.execute("INSERT INTO ideas (title, created_at, updated_at) VALUES ('既存', 'x', 'x')")
+    conn.commit()
+    conn.close()
+    monkeypatch.setenv("APP_DB_PATH", str(path))
+    init_db()
+    conn = sqlite3.connect(path)
+    assert conn.execute("SELECT prioritized FROM ideas").fetchone() == (0,)
+    conn.close()

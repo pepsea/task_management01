@@ -141,6 +141,7 @@ class IdeaUpdate(BaseModel):
     body: Optional[str] = None
     tags: Optional[list[TagName]] = None
     archived: Optional[bool] = None
+    prioritized: Optional[bool] = None
 
 
 class IdeaOut(BaseModel):
@@ -148,6 +149,7 @@ class IdeaOut(BaseModel):
     title: str
     body: str
     archived_at: Optional[str]
+    prioritized: bool
     created_at: str
     updated_at: str
     task_count: int
@@ -234,3 +236,12 @@ class MasterNameIn(BaseModel):
 class MasterOut(BaseModel):
     id: int
     name: str
+
+
+class AreaOut(MasterOut):
+    color: str
+
+
+class AreaUpdate(BaseModel):
+    name: Optional[MasterName] = None
+    color: Optional[ColorStr] = None

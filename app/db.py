@@ -4,6 +4,8 @@ from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
+from app.colors import next_color
+
 DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "app.db"
 
 SCHEMA = """
@@ -12,6 +14,7 @@ CREATE TABLE IF NOT EXISTS ideas (
     title TEXT NOT NULL,
     body TEXT NOT NULL DEFAULT '',
     archived_at TEXT,
+    prioritized INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -46,7 +49,8 @@ CREATE TABLE IF NOT EXISTS decisions (
 );
 CREATE TABLE IF NOT EXISTS areas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE
+    name TEXT NOT NULL UNIQUE,
+    color TEXT
 );
 CREATE TABLE IF NOT EXISTS related_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,6 +82,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
     idea_columns = {row[1] for row in conn.execute("PRAGMA table_info(ideas)")}
     if "archived_at" not in idea_columns:
         conn.execute("ALTER TABLE ideas ADD COLUMN archived_at TEXT")
+    if "prioritized" not in idea_columns:
+        conn.execute("ALTER TABLE ideas ADD COLUMN prioritized INTEGER NOT NULL DEFAULT 0")
     # 関連項目が領域の下にあった旧スキーマを、領域と独立した一覧に作り直す
     related_columns = {row[1] for row in conn.execute("PRAGMA table_info(related_items)")}
     if "area_id" in related_columns:
@@ -99,6 +105,12 @@ def _migrate(conn: sqlite3.Connection) -> None:
         """INSERT OR IGNORE INTO related_items (name)
            SELECT related FROM tasks WHERE related != '' GROUP BY related ORDER BY MIN(id)"""
     )
+    # 領域の色（後から追加した列）。色のない領域には登録順に自動で割り当てる
+    area_columns = {row[1] for row in conn.execute("PRAGMA table_info(areas)")}
+    if "color" not in area_columns:
+        conn.execute("ALTER TABLE areas ADD COLUMN color TEXT")
+    for (area_id,) in conn.execute("SELECT id FROM areas WHERE color IS NULL ORDER BY id").fetchall():
+        conn.execute("UPDATE areas SET color = ? WHERE id = ?", (next_color(conn, "areas"), area_id))
 
 
 def db_path() -> Path:
