@@ -30,6 +30,12 @@ export function toInputValue(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// "YYYY-MM-DDTHH:MM" → "M/D"
+export function formatMonthDay(s) {
+  const d = parseDateTime(s);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 export function formatShort(s) {
   const d = parseDateTime(s);
   return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;

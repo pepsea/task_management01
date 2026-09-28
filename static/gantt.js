@@ -1,4 +1,4 @@
-import { addDays, dayDiff, formatShort, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek, todayKey } from "./dates.js";
+import { addDays, dayDiff, formatMonthDay, formatShort, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek, todayKey } from "./dates.js";
 import { el, isWebUrl } from "./ui.js";
 
 // 1 列の単位ごとの設定。表示する列数は空き幅に minColWidth の列が何本入るかで決め、
@@ -16,8 +16,8 @@ const TABLE_COLUMNS = [
   { key: "area", label: "領域", width: 110 },
   { key: "related", label: "関連項目", width: 100 },
   { key: "title", label: "タスク名", width: 240 },
-  { key: "start", label: "開始", width: 96, detail: true },
-  { key: "due", label: "期限", width: 96, detail: true },
+  { key: "start", label: "開始", width: 60, detail: true },
+  { key: "due", label: "期限", width: 60, detail: true },
   { key: "prio", label: "優先", width: 42, detail: true },
   { key: "done", label: "完了", width: 42, detail: true },
 ];
@@ -337,8 +337,9 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
           case "title": return el("div", { class: "g-title-cell" },
             el("div", { class: "g-title", title: task.memo ? `${task.title}\n\n${task.memo}` : task.title }, task.title),
             linkList(task.links));
-          case "start": return el("div", {}, formatShort(task.start_at));
-          case "due": return el("div", { class: "g-due" }, formatShort(task.due_at));
+          // 月日だけを表示し、時刻はツールチップで見せる
+          case "start": return el("div", { title: formatShort(task.start_at) }, formatMonthDay(task.start_at));
+          case "due": return el("div", { class: "g-due", title: formatShort(task.due_at) }, formatMonthDay(task.due_at));
           case "prio": return el("div", { class: `prio ${task.priority}` }, PRIORITY_LABEL[task.priority]);
           default: return el("div", {}, checkbox);
         }
