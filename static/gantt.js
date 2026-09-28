@@ -14,6 +14,7 @@ const CELLS_WIDTH = 671;
 // ディシジョン名 1 件ぶんのおおよその表示幅（重なり判定用）と 1 段の高さ
 const DECISION_LABEL_WIDTH = 122;
 const DECISION_LANE_HEIGHT = 20;
+const DUE_SOON_DAYS = 2;
 const PRIORITY_LABEL = { high: "高", mid: "中", low: "低" };
 const COLUMNS = ["☀", "領域", "関連項目", "タスク名", "開始", "期限", "優先", "完了"];
 
@@ -178,6 +179,8 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
   function taskRow(task, layout, now) {
     const due = parseDateTime(task.due_at);
     const overdue = !task.done && due < now;
+    // 期限が今日・明日・明後日（残り 2 日以内）の未完了タスクは期限を赤で表示する
+    const dueSoon = !task.done && !overdue && dayDiff(now, due) <= DUE_SOON_DAYS;
     const isToday = task.today_on === todayKey();
     const todayButton = el("button", {
       type: "button",
@@ -213,7 +216,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     }
 
     return el("div", {
-      class: `g-row${task.done ? " done" : ""}${overdue ? " overdue" : ""}${isToday ? " today-task" : ""}`,
+      class: `g-row${task.done ? " done" : ""}${overdue ? " overdue" : ""}${dueSoon ? " due-soon" : ""}${isToday ? " today-task" : ""}`,
       onclick: () => onEdit(task),
     },
       el("div", { class: "g-cells" },

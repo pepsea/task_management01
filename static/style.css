@@ -117,6 +117,7 @@ h2 { font-size: 14px; margin: 0; }
 .g-row.done .g-title { text-decoration: line-through; color: var(--muted); }
 .g-row.overdue .g-bar { outline: 2px solid var(--danger); outline-offset: 1px; }
 .g-row.overdue .g-due { color: var(--danger); font-weight: 600; }
+.g-row.due-soon .g-due { color: var(--danger); font-weight: 600; }
 .g-empty { padding: 24px; color: var(--muted); }
 .decision-btn { color: var(--decision); border-color: var(--decision); }
 .g-row.g-decisions { cursor: default; }
