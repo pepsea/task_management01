@@ -1,5 +1,106 @@
 <!doctype html>
 <html lang="ja">
-<head><meta charset="utf-8"><title>Task &amp; Idea Hub</title></head>
-<body></body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task &amp; Idea Hub</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <section class="pane pane-gantt">
+      <header class="toolbar">
+        <select id="area-filter" aria-label="領域で絞り込み">
+          <option value="">すべての領域</option>
+        </select>
+        <div class="seg" role="group" aria-label="表示期間">
+          <button id="scale-week" type="button" class="active">週</button>
+          <button id="scale-month" type="button">月</button>
+        </div>
+        <button id="prev" type="button" aria-label="前へ">◀</button>
+        <button id="today" type="button">今日</button>
+        <button id="next" type="button" aria-label="次へ">▶</button>
+        <span id="range-label" class="range-label"></span>
+        <span class="spacer"></span>
+        <button id="add-decision" type="button" class="decision-btn">＋ ディシジョン</button>
+        <button id="add-task" type="button" class="primary">＋ タスク</button>
+      </header>
+      <div id="gantt" class="gantt"></div>
+    </section>
+
+    <aside class="pane pane-side">
+      <section class="panel ideas">
+        <header class="panel-head">
+          <h2>アイディア保管庫</h2>
+          <button id="add-idea" type="button" aria-label="アイディアを追加">＋</button>
+        </header>
+        <input id="idea-search" type="search" placeholder="検索（タイトル・本文）">
+        <ul id="idea-list" class="idea-list"></ul>
+        <div id="idea-editor" class="idea-editor" hidden>
+          <div class="editor-head">
+            <input id="idea-title" aria-label="タイトル">
+            <button id="idea-to-task" type="button" class="primary">タスク化</button>
+            <button id="idea-delete" type="button" class="danger">削除</button>
+          </div>
+          <textarea id="idea-body" placeholder="アイディアを書く…"></textarea>
+          <span id="idea-status" class="status"></span>
+        </div>
+      </section>
+
+      <section class="panel brainstorm">
+        <header class="panel-head"><h2>ブレスト</h2></header>
+        <input id="bs-input" placeholder="思いつきを入力して Enter">
+        <ul id="bs-list" class="bs-list"></ul>
+      </section>
+    </aside>
+  </div>
+
+  <dialog id="task-dialog">
+    <form id="task-form">
+      <h2 id="task-form-title">タスクを追加</h2>
+      <label>領域<input name="area" list="area-options" required></label>
+      <label>関連項目<input name="related" list="related-options"></label>
+      <label>タスク名<input name="title" required></label>
+      <label>開始日時<input name="start_at" type="datetime-local" required></label>
+      <label>期限<input name="due_at" type="datetime-local" required></label>
+      <label>優先度
+        <select name="priority">
+          <option value="high">高</option>
+          <option value="mid">中</option>
+          <option value="low">低</option>
+        </select>
+      </label>
+      <label class="check"><input name="done" type="checkbox">完了</label>
+      <p id="task-form-error" class="form-error"></p>
+      <div class="actions">
+        <button id="task-delete" type="button" class="danger">削除</button>
+        <span class="spacer"></span>
+        <button id="task-cancel" type="button">キャンセル</button>
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="decision-dialog">
+    <form id="decision-form">
+      <h2 id="decision-form-title">ディシジョンポイントを追加</h2>
+      <label>名前<input name="title" required placeholder="例：経営会議"></label>
+      <label>日付<input name="date" type="date" required></label>
+      <label>時刻（任意）<input name="time" type="time"></label>
+      <p id="decision-form-error" class="form-error"></p>
+      <div class="actions">
+        <button id="decision-delete" type="button" class="danger">削除</button>
+        <span class="spacer"></span>
+        <button id="decision-cancel" type="button">キャンセル</button>
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <datalist id="area-options"></datalist>
+  <datalist id="related-options"></datalist>
+  <div id="toast-area" class="toast-area" aria-live="polite"></div>
+
+  <script type="module" src="main.js"></script>
+</body>
 </html>
