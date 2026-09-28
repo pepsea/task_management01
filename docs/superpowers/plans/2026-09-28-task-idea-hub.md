@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 左2/3にTODOガントチャート、右1/3にアイディア保管庫とブレストメモを並べた、個人用のローカルWebアプリを `http://localhost:5003` で動かす。
+**Goal:** 左2/3にTODOガントチャート（ディシジョンポイント付き）、右1/3にアイディア保管庫とブレストメモを並べた、個人用のローカルWebアプリを `http://localhost:5003` で動かす。
 
 **Architecture:** FastAPI が JSON API（`/api/...`）と静的フロントエンド（`static/`）を同じポート 5003 で配信する。データは SQLite ファイル 1 つ（`data/app.db`）に保存する。フロントはビルド不要の素の ES Modules で、パネルごとにファイルを分け、`main.js` がパネル間の連携（タスク化・昇格）をつなぐ。
 
@@ -31,7 +31,7 @@
 4. **検索語に `%` や `_` を含む**（例：「100%」）→ ワイルドカードとして扱わず、文字どおりに検索すること（Task 3 で `test_search_escapes_like_wildcards` を追加）
 5. **日時の形式が違う**（`2026/10/01`、秒付き、空文字など）→ 422 を返し、500 にならないこと（Task 2 で `test_invalid_datetime_rejected` を追加）
 
-フロントで手動確認する項目（Task 9）：日本語入力の変換確定の Enter でブレストメモが追加されないこと、表示期間をはみ出すタスクのバーが切り取られて表示されること。
+フロントで手動確認する項目（Task 11）：日本語入力の変換確定の Enter でブレストメモが追加されないこと、表示期間をはみ出すタスクのバーが切り取られて表示されること。
 
 ---
 
@@ -48,6 +48,7 @@
 | `app/routers/tasks.py` | `/api/tasks`, `/api/areas` |
 | `app/routers/ideas.py` | `/api/ideas` と `fetch_idea` |
 | `app/routers/brainstorm.py` | `/api/brainstorm` と昇格 |
+| `app/routers/decisions.py` | `/api/decisions`（ディシジョンポイント） |
 | `static/index.html` | 画面の骨組み、タスク用ダイアログ |
 | `static/style.css` | 全体のスタイル |
 | `static/ui.js` | `el()`（DOM 生成）、`toast()` |
@@ -57,9 +58,10 @@
 | `static/taskForm.js` | タスクの作成・編集ダイアログ |
 | `static/ideas.js` | 保管庫パネル |
 | `static/brainstorm.js` | ブレストパネル |
+| `static/decisionForm.js` | ディシジョンポイントの作成・編集ダイアログ |
 | `static/main.js` | 初期化とパネル間の連携 |
 | `tests/conftest.py` | 一時 DB を使う `client` フィクスチャ |
-| `tests/test_app.py`, `tests/test_tasks.py`, `tests/test_ideas.py`, `tests/test_brainstorm.py` | API テスト |
+| `tests/test_app.py`, `tests/test_tasks.py`, `tests/test_ideas.py`, `tests/test_brainstorm.py`, `tests/test_decisions.py` | API テスト |
 
 ---
 
@@ -248,7 +250,7 @@ def health():
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 ```
 
-`static/index.html`（Task 5 で置き換える仮の画面）:
+`static/index.html`（Task 6 で置き換える仮の画面）:
 ```html
 <!doctype html>
 <html lang="ja">
@@ -1022,11 +1024,278 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 5: 画面の骨組み（レイアウト・共通 JS）
+### Task 5: ディシジョンポイント API
+
+**Files:**
+- Modify: `app/db.py`（スキーマに `decisions` を追加）, `app/models.py`, `app/main.py`
+- Create: `app/routers/decisions.py`
+- Test: `tests/test_decisions.py`
+
+**Interfaces:**
+- Consumes: `get_conn`, `now_iso`（Task 1）、`NonEmptyStr`（Task 2）
+- Produces:
+  - `app.models.DecisionCreate`, `DecisionUpdate`, `DecisionOut`
+  - `GET /api/decisions` → `DecisionOut[]`（`date` 昇順 → 時刻なしが先 → `time` 昇順 → `id` 昇順）
+  - `POST /api/decisions` → 201 `DecisionOut`
+  - `PATCH /api/decisions/{id}` → `DecisionOut`（`time: null` で時刻なしに戻す）
+  - `DELETE /api/decisions/{id}` → 204
+  - `DecisionOut` の JSON: `{id, title, date: "YYYY-MM-DD", time: "HH:MM"|null, created_at, updated_at}`
+  - 入力の `time` は `""` も時刻なし（null）として受け付ける（`<input type="time">` の空値が `""` のため）
+
+- [ ] **Step 1: 失敗するテストを書く**
+
+`tests/test_decisions.py`:
+```python
+import pytest
+
+
+def make_decision(client, **overrides):
+    payload = {"title": "経営会議", "date": "2026-10-15", "time": "10:00"}
+    payload.update(overrides)
+    r = client.post("/api/decisions", json=payload)
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_create_and_list(client):
+    d = make_decision(client)
+    assert d["title"] == "経営会議"
+    assert d["date"] == "2026-10-15"
+    assert d["time"] == "10:00"
+    assert client.get("/api/decisions").json() == [d]
+
+
+def test_time_is_optional(client):
+    assert make_decision(client, time=None)["time"] is None
+    assert make_decision(client, time="")["time"] is None
+    r = client.post("/api/decisions", json={"title": "締切", "date": "2026-10-20"})
+    assert r.status_code == 201
+    assert r.json()["time"] is None
+
+
+def test_list_is_ordered_by_date_then_time(client):
+    c = make_decision(client, title="C", date="2026-10-16", time="09:00")
+    b = make_decision(client, title="B", date="2026-10-15", time="15:00")
+    a = make_decision(client, title="A", date="2026-10-15", time=None)
+    assert [x["id"] for x in client.get("/api/decisions").json()] == [a["id"], b["id"], c["id"]]
+
+
+@pytest.mark.parametrize("value", ["2026/10/15", "2026-02-30", "2026-10-15T10:00", "", "2026-1-5"])
+def test_invalid_date_rejected(client, value):
+    assert client.post("/api/decisions", json={"title": "x", "date": value}).status_code == 422
+
+
+@pytest.mark.parametrize("value", ["25:00", "10:00:00", "9:00", "noon"])
+def test_invalid_time_rejected(client, value):
+    r = client.post("/api/decisions", json={"title": "x", "date": "2026-10-15", "time": value})
+    assert r.status_code == 422
+
+
+def test_blank_title_rejected(client):
+    assert client.post("/api/decisions", json={"title": "  ", "date": "2026-10-15"}).status_code == 422
+
+
+def test_patch_fields_and_clear_time(client):
+    d = make_decision(client)
+    r = client.patch(f"/api/decisions/{d['id']}", json={"title": "取締役会", "date": "2026-10-16"})
+    assert r.status_code == 200
+    assert r.json()["title"] == "取締役会"
+    assert r.json()["date"] == "2026-10-16"
+    assert r.json()["time"] == "10:00"
+    r = client.patch(f"/api/decisions/{d['id']}", json={"time": None})
+    assert r.json()["time"] is None
+
+
+def test_patch_null_title_or_date_rejected(client):
+    d = make_decision(client)
+    assert client.patch(f"/api/decisions/{d['id']}", json={"title": None}).status_code == 422
+    assert client.patch(f"/api/decisions/{d['id']}", json={"date": None}).status_code == 422
+
+
+def test_delete(client):
+    d = make_decision(client)
+    assert client.delete(f"/api/decisions/{d['id']}").status_code == 204
+    assert client.get("/api/decisions").json() == []
+
+
+def test_missing_decision_is_404(client):
+    assert client.patch("/api/decisions/999", json={"title": "x"}).status_code == 404
+    assert client.delete("/api/decisions/999").status_code == 404
+```
+
+- [ ] **Step 2: テストが失敗することを確認する**
+
+Run: `.venv/bin/pytest tests/test_decisions.py -v`
+Expected: FAIL（`/api/decisions` が 404/405）
+
+- [ ] **Step 3: スキーマとモデルを追加する**
+
+`app/db.py` の `SCHEMA` 文字列の末尾（`brainstorm` テーブルの後、閉じる `"""` の前）に追加:
+```sql
+CREATE TABLE IF NOT EXISTS decisions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    date TEXT NOT NULL,
+    time TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+```
+
+`app/models.py` の末尾に追加:
+```python
+def check_date(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return value
+    datetime.strptime(value, "%Y-%m-%d")
+    if len(value) != 10:
+        raise ValueError("日付は YYYY-MM-DD 形式で指定してください")
+    return value
+
+
+def check_time(value: Optional[str]) -> Optional[str]:
+    if value is None or value == "":
+        return None
+    datetime.strptime(value, "%H:%M")
+    if len(value) != 5:
+        raise ValueError("時刻は HH:MM 形式で指定してください")
+    return value
+
+
+class DecisionCreate(BaseModel):
+    title: NonEmptyStr
+    date: str
+    time: Optional[str] = None
+
+    @field_validator("date")
+    @classmethod
+    def validate_date(cls, value):
+        return check_date(value)
+
+    @field_validator("time")
+    @classmethod
+    def validate_time(cls, value):
+        return check_time(value)
+
+
+class DecisionUpdate(BaseModel):
+    title: Optional[NonEmptyStr] = None
+    date: Optional[str] = None
+    time: Optional[str] = None
+
+    @field_validator("date")
+    @classmethod
+    def validate_date(cls, value):
+        return check_date(value)
+
+    @field_validator("time")
+    @classmethod
+    def validate_time(cls, value):
+        return check_time(value)
+
+
+class DecisionOut(BaseModel):
+    id: int
+    title: str
+    date: str
+    time: Optional[str]
+    created_at: str
+    updated_at: str
+```
+
+- [ ] **Step 4: ルーターを実装する**
+
+`app/routers/decisions.py`:
+```python
+import sqlite3
+
+from fastapi import APIRouter, Depends, HTTPException, Response
+
+from app.db import get_conn, now_iso
+from app.models import DecisionCreate, DecisionOut, DecisionUpdate
+
+router = APIRouter(prefix="/api", tags=["decisions"])
+
+
+def _get_decision(conn: sqlite3.Connection, decision_id: int) -> dict:
+    row = conn.execute("SELECT * FROM decisions WHERE id = ?", (decision_id,)).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="ディシジョンポイントが見つかりません")
+    return dict(row)
+
+
+@router.get("/decisions", response_model=list[DecisionOut])
+def list_decisions(conn: sqlite3.Connection = Depends(get_conn)):
+    # 時刻なし（NULL）は COALESCE で '' になり、同じ日の中で先頭に来る
+    rows = conn.execute("SELECT * FROM decisions ORDER BY date, COALESCE(time, ''), id")
+    return [dict(r) for r in rows]
+
+
+@router.post("/decisions", response_model=DecisionOut, status_code=201)
+def create_decision(body: DecisionCreate, conn: sqlite3.Connection = Depends(get_conn)):
+    now = now_iso()
+    cur = conn.execute(
+        "INSERT INTO decisions (title, date, time, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        (body.title, body.date, body.time, now, now),
+    )
+    conn.commit()
+    return _get_decision(conn, cur.lastrowid)
+
+
+@router.patch("/decisions/{decision_id}", response_model=DecisionOut)
+def update_decision(decision_id: int, body: DecisionUpdate, conn: sqlite3.Connection = Depends(get_conn)):
+    _get_decision(conn, decision_id)
+    changes = body.model_dump(exclude_unset=True)
+    for field in ("title", "date"):
+        if field in changes and changes[field] is None:
+            raise HTTPException(status_code=422, detail=f"{field} は空にできません")
+    if changes:
+        changes["updated_at"] = now_iso()
+        assignments = ", ".join(f"{name} = ?" for name in changes)
+        conn.execute(f"UPDATE decisions SET {assignments} WHERE id = ?", (*changes.values(), decision_id))
+        conn.commit()
+    return _get_decision(conn, decision_id)
+
+
+@router.delete("/decisions/{decision_id}", status_code=204)
+def delete_decision(decision_id: int, conn: sqlite3.Connection = Depends(get_conn)):
+    _get_decision(conn, decision_id)
+    conn.execute("DELETE FROM decisions WHERE id = ?", (decision_id,))
+    conn.commit()
+    return Response(status_code=204)
+```
+
+`app/main.py` の import を `from app.routers import brainstorm, decisions, ideas, tasks` に変え、`app.include_router(brainstorm.router)` の下に追加:
+```python
+app.include_router(decisions.router)
+```
+
+`tests/test_app.py` の `test_schema_is_created` の期待値を変更:
+```python
+    assert {"tasks", "ideas", "brainstorm", "decisions"} <= names
+```
+
+- [ ] **Step 5: テストが通ることを確認する**
+
+Run: `.venv/bin/pytest -v`
+Expected: all passed
+
+- [ ] **Step 6: コミットする**
+
+```bash
+git add app tests
+git commit -m "feat: ディシジョンポイントの CRUD API を追加
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 6: 画面の骨組み（レイアウト・共通 JS）
 
 **Files:**
 - Modify: `static/index.html`（全面置き換え）
-- Create: `static/style.css`, `static/ui.js`, `static/dates.js`, `static/api.js`, `static/main.js`（仮版。Task 8 で完成させる）
+- Create: `static/style.css`, `static/ui.js`, `static/dates.js`, `static/api.js`, `static/main.js`（仮版。Task 9 で完成させる）
 - Test: 既存の `tests/test_app.py::test_index_is_served` がそのまま通ること＋ブラウザで確認
 
 **Interfaces:**
@@ -1378,7 +1647,7 @@ export const api = {
 };
 ```
 
-- [ ] **Step 6: 仮の `static/main.js` を書く（API 疎通の確認用。Task 8 で置き換える）**
+- [ ] **Step 6: 仮の `static/main.js` を書く（API 疎通の確認用。Task 9 で置き換える）**
 
 ```js
 import { api } from "./api.js";
@@ -1409,7 +1678,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 6: ガントチャートとタスクダイアログ
+### Task 7: ガントチャートとタスクダイアログ
 
 **Files:**
 - Create: `static/gantt.js`, `static/taskForm.js`
@@ -1759,17 +2028,17 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 7: アイディア保管庫パネル（タスク化を含む）
+### Task 8: アイディア保管庫パネル（タスク化を含む）
 
 **Files:**
 - Create: `static/ideas.js`
 - Modify: `static/main.js`
 
 **Interfaces:**
-- Consumes: `api.listIdeas` / `getIdea` / `createIdea` / `updateIdea` / `deleteIdea`、`el`、`toast`、Task 6 の `taskForm.open({ defaults })`
+- Consumes: `api.listIdeas` / `getIdea` / `createIdea` / `updateIdea` / `deleteIdea`、`el`、`toast`、Task 7 の `taskForm.open({ defaults })`
 - Produces:
   - `ideas.js`: `initIdeas({ onMakeTask(idea) }) -> { refresh(): Promise<void>, reveal(id: number): Promise<void> }`
-    - `reveal(id)` は検索欄を空にして一覧を読み直し、そのアイディアを選択する（Task 8 の昇格で使う）
+    - `reveal(id)` は検索欄を空にして一覧を読み直し、そのアイディアを選択する（Task 9 の昇格で使う）
 
 - [ ] **Step 1: `static/ideas.js` を書く**
 
@@ -1956,14 +2225,14 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 8: ブレストパネル（昇格を含む）
+### Task 9: ブレストパネル（昇格を含む）
 
 **Files:**
 - Create: `static/brainstorm.js`
 - Modify: `static/main.js`
 
 **Interfaces:**
-- Consumes: `api.listMemos` / `addMemo` / `deleteMemo` / `promoteMemo`、`el`、`toast`、Task 7 の `ideas.reveal(id)`
+- Consumes: `api.listMemos` / `addMemo` / `deleteMemo` / `promoteMemo`、`el`、`toast`、Task 8 の `ideas.reveal(id)`
 - Produces: `brainstorm.js`: `initBrainstorm({ onPromoted(idea) }) -> { refresh(): Promise<void> }`
 
 - [ ] **Step 1: `static/brainstorm.js` を書く**
@@ -2073,7 +2342,365 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 9: 全体確認と README
+### Task 10: ガント上のディシジョンポイント
+
+**Files:**
+- Create: `static/decisionForm.js`
+- Modify: `static/index.html`, `static/style.css`, `static/dates.js`, `static/api.js`, `static/gantt.js`, `static/main.js`（最終版に置き換え）
+
+**Interfaces:**
+- Consumes: Task 5 の `/api/decisions`、Task 7 の `createGantt` / `initTaskForm`、Task 8 の `initIdeas`、Task 9 の `initBrainstorm`
+- Produces:
+  - `dates.js`: `parseDate("YYYY-MM-DD") -> Date`（ローカル時刻の 0:00。`new Date("YYYY-MM-DD")` は UTC として解釈されるため使わない）
+  - `api.js`: `api.listDecisions()`, `api.createDecision(d)`, `api.updateDecision(id, patch)`, `api.deleteDecision(id)`
+  - `gantt.js`: `createGantt(root, { onEdit, onToggleDone, onEditDecision(decision) })`、`render(tasks, decisions)`（引数を省略すると前回の値を使う）
+  - `decisionForm.js`: `initDecisionForm({ onSaved() }) -> { open({ decision? }) }`
+  - `index.html` に追加する要素 ID: `add-decision`, `decision-dialog`, `decision-form`, `decision-form-title`, `decision-form-error`, `decision-delete`, `decision-cancel`
+
+- [ ] **Step 1: `static/index.html` を変更する**
+
+ツールバーの `<button id="add-task" ...>` の直前に追加:
+```html
+        <button id="add-decision" type="button" class="decision-btn">＋ ディシジョン</button>
+```
+
+`</dialog>`（task-dialog の閉じタグ）の直後に追加:
+```html
+  <dialog id="decision-dialog">
+    <form id="decision-form">
+      <h2 id="decision-form-title">ディシジョンポイントを追加</h2>
+      <label>名前<input name="title" required placeholder="例：経営会議"></label>
+      <label>日付<input name="date" type="date" required></label>
+      <label>時刻（任意）<input name="time" type="time"></label>
+      <p id="decision-form-error" class="form-error"></p>
+      <div class="actions">
+        <button id="decision-delete" type="button" class="danger">削除</button>
+        <span class="spacer"></span>
+        <button id="decision-cancel" type="button">キャンセル</button>
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+```
+
+- [ ] **Step 2: `static/style.css` を変更する**
+
+`:root` の中の `--danger: #b91c1c;` の下に追加:
+```css
+  --decision: #7c3aed;
+```
+
+「ダイアログ」の 4 つの `#task-form` ルールを、ディシジョン用フォームにも効くように置き換える:
+```css
+#task-form, #decision-form { display: flex; flex-direction: column; gap: 10px; }
+#task-form label, #decision-form label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--muted); }
+#task-form label.check { flex-direction: row; align-items: center; gap: 6px; }
+#task-form .actions, #decision-form .actions { display: flex; gap: 6px; }
+```
+
+「ガント」の `.g-empty { ... }` の下に追加:
+```css
+.decision-btn { color: var(--decision); border-color: var(--decision); }
+.g-row.g-decisions { cursor: default; }
+.g-decisions .g-cells > .g-decision-caption { grid-column: 1 / -1; color: var(--decision); font-weight: 600; }
+.g-decision-track { height: 30px; }
+.g-decision { position: absolute; top: 5px; display: flex; gap: 2px; transform: translateX(-7px); z-index: 1; }
+.g-decision button {
+  border: none; background: none; padding: 0 2px; color: var(--decision); font-size: 12px;
+  white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis;
+}
+.g-decision button:hover { background: none; text-decoration: underline; }
+.g-decision-line { position: absolute; top: 0; bottom: 0; border-left: 2px dashed var(--decision); opacity: .45; }
+```
+
+- [ ] **Step 3: `static/dates.js` の末尾に追加する**
+
+```js
+export function parseDate(s) {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+```
+
+- [ ] **Step 4: `static/api.js` の `api` オブジェクトの末尾（`promoteMemo` の行の下）に追加する**
+
+```js
+  listDecisions: () => request("GET", "/api/decisions"),
+  createDecision: (decision) => request("POST", "/api/decisions", decision),
+  updateDecision: (id, patch) => request("PATCH", `/api/decisions/${id}`, patch),
+  deleteDecision: (id) => request("DELETE", `/api/decisions/${id}`),
+```
+
+- [ ] **Step 5: `static/gantt.js` を変更する**
+
+(a) 先頭の dates.js の import を置き換える:
+```js
+import { addDays, dayDiff, formatShort, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek } from "./dates.js";
+```
+
+(b) `export function createGantt(root, { onEdit, onToggleDone }) {` から `let tasks = [];` までを置き換える:
+```js
+export function createGantt(root, { onEdit, onToggleDone, onEditDecision }) {
+  let scale = "week";
+  let anchor = startOfDay(new Date());
+  let tasks = [];
+  let decisions = [];
+  // 表示期間内にあるディシジョンの列番号（render のたびに計算し直す）
+  let decisionDays = [];
+
+  const decisionLine = (index, range) =>
+    el("div", { class: "g-decision-line", style: `left:${index * range.dayWidth + range.dayWidth / 2}px` });
+
+  function decisionRow(range) {
+    const byDay = new Map();
+    for (const d of decisions) {
+      const index = dayDiff(range.start, parseDate(d.date));
+      if (index < 0 || index >= range.days) continue;
+      if (!byDay.has(index)) byDay.set(index, []);
+      byDay.get(index).push(d);
+    }
+    const track = el("div", {
+      class: "g-track g-decision-track",
+      style: `width:${range.days * range.dayWidth}px`,
+    });
+    for (const [index, items] of byDay) {
+      track.append(decisionLine(index, range));
+      track.append(el("div", {
+        class: "g-decision",
+        style: `left:${index * range.dayWidth + range.dayWidth / 2}px`,
+      }, items.map((d) => el("button", {
+        type: "button",
+        title: `${d.date}${d.time ? ` ${d.time}` : ""}\n${d.title}`,
+        onclick: () => onEditDecision(d),
+      }, `◆ ${d.title}`))));
+    }
+    return el("div", { class: "g-row g-decisions" },
+      el("div", { class: "g-cells" }, el("div", { class: "g-decision-caption" }, "ディシジョン")),
+      track);
+  }
+```
+
+(c) `taskRow` の中の今日の線のブロック（`const todayIndex = ...` から対応する `}` まで）の直後に追加:
+```js
+    for (const index of decisionDays) {
+      track.append(decisionLine(index, range));
+    }
+```
+
+(d) `function render(nextTasks = tasks) { ... }` 全体を置き換える:
+```js
+  function render(nextTasks = tasks, nextDecisions = decisions) {
+    tasks = nextTasks;
+    decisions = nextDecisions;
+    const range = computeRange(scale, anchor);
+    root.style.setProperty("--day-w", `${range.dayWidth}px`);
+    decisionDays = [...new Set(
+      decisions
+        .map((d) => dayDiff(range.start, parseDate(d.date)))
+        .filter((index) => index >= 0 && index < range.days),
+    )];
+    const now = new Date();
+    const rows = sortTasks(tasks).map((t) => taskRow(t, range, now));
+    root.replaceChildren(
+      headerRow(range),
+      decisionRow(range),
+      ...(rows.length ? rows : [el("div", { class: "g-empty" }, "タスクがありません。「＋ タスク」から追加できます。")]),
+    );
+  }
+```
+
+- [ ] **Step 6: `static/decisionForm.js` を書く**
+
+```js
+import { api } from "./api.js";
+import { toInputValue } from "./dates.js";
+
+export function initDecisionForm({ onSaved }) {
+  const dialog = document.getElementById("decision-dialog");
+  const form = document.getElementById("decision-form");
+  const heading = document.getElementById("decision-form-title");
+  const errorBox = document.getElementById("decision-form-error");
+  const deleteButton = document.getElementById("decision-delete");
+  const field = (name) => form.elements.namedItem(name);
+
+  let editing = null;
+
+  function open({ decision = null } = {}) {
+    editing = decision;
+    field("title").value = decision?.title ?? "";
+    field("date").value = decision?.date ?? toInputValue(new Date()).slice(0, 10);
+    field("time").value = decision?.time ?? "";
+    heading.textContent = decision ? "ディシジョンポイントを編集" : "ディシジョンポイントを追加";
+    deleteButton.hidden = !decision;
+    errorBox.textContent = "";
+    dialog.showModal();
+    field("title").focus();
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const payload = {
+      title: field("title").value.trim(),
+      date: field("date").value,
+      time: field("time").value || null,
+    };
+    if (!payload.title || !payload.date) {
+      errorBox.textContent = "名前と日付は必須です";
+      return;
+    }
+    try {
+      if (editing) await api.updateDecision(editing.id, payload);
+      else await api.createDecision(payload);
+      dialog.close();
+      await onSaved();
+    } catch (err) {
+      errorBox.textContent = err.message;
+    }
+  });
+
+  deleteButton.addEventListener("click", async () => {
+    if (!editing || !confirm(`「${editing.title}」を削除しますか？`)) return;
+    try {
+      await api.deleteDecision(editing.id);
+      dialog.close();
+      await onSaved();
+    } catch (err) {
+      errorBox.textContent = err.message;
+    }
+  });
+
+  document.getElementById("decision-cancel").addEventListener("click", () => dialog.close());
+
+  return { open };
+}
+```
+
+- [ ] **Step 7: `static/main.js` を最終版に置き換える**
+
+```js
+import { api } from "./api.js";
+import { initBrainstorm } from "./brainstorm.js";
+import { initDecisionForm } from "./decisionForm.js";
+import { createGantt } from "./gantt.js";
+import { initIdeas } from "./ideas.js";
+import { initTaskForm } from "./taskForm.js";
+import { el, toast } from "./ui.js";
+
+const areaFilter = document.getElementById("area-filter");
+const rangeLabel = document.getElementById("range-label");
+let tasks = [];
+let decisions = [];
+
+const gantt = createGantt(document.getElementById("gantt"), {
+  onEdit: (task) => taskForm.open({ task }),
+  onToggleDone: async (task, done) => {
+    try {
+      await api.updateTask(task.id, { done });
+    } catch (err) {
+      toast(err.message);
+    }
+    await loadTasks();
+  },
+  onEditDecision: (decision) => decisionForm.open({ decision }),
+});
+
+const taskForm = initTaskForm({
+  onSaved: async () => {
+    await Promise.all([loadTasks(), ideas.refresh()]);
+  },
+});
+
+const decisionForm = initDecisionForm({ onSaved: () => loadDecisions() });
+
+const ideas = initIdeas({
+  onMakeTask: (idea) => taskForm.open({ defaults: { title: idea.title, idea_id: idea.id } }),
+});
+
+initBrainstorm({
+  onPromoted: (idea) => ideas.reveal(idea.id),
+});
+
+function renderGantt() {
+  gantt.render(tasks, decisions);
+  rangeLabel.textContent = gantt.rangeLabel();
+}
+
+async function loadTasks() {
+  try {
+    const [areas, loaded] = await Promise.all([api.listAreas(), api.listTasks(areaFilter.value)]);
+    tasks = loaded;
+    const selected = areaFilter.value;
+    areaFilter.replaceChildren(
+      el("option", { value: "" }, "すべての領域"),
+      ...areas.map((a) => el("option", { value: a }, a)),
+    );
+    // 絞り込み中の領域がタスク削除で消えた場合は「すべて」に戻す
+    areaFilter.value = areas.includes(selected) ? selected : "";
+    if (areaFilter.value !== selected) tasks = await api.listTasks("");
+    const related = [...new Set(tasks.map((t) => t.related).filter(Boolean))].sort();
+    taskForm.setOptions({ areas, related });
+    renderGantt();
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+async function loadDecisions() {
+  try {
+    decisions = await api.listDecisions();
+    renderGantt();
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+function setScale(scale) {
+  document.getElementById("scale-week").classList.toggle("active", scale === "week");
+  document.getElementById("scale-month").classList.toggle("active", scale === "month");
+  gantt.setScale(scale);
+  rangeLabel.textContent = gantt.rangeLabel();
+}
+
+areaFilter.addEventListener("change", loadTasks);
+document.getElementById("scale-week").addEventListener("click", () => setScale("week"));
+document.getElementById("scale-month").addEventListener("click", () => setScale("month"));
+document.getElementById("prev").addEventListener("click", () => { gantt.shift(-1); rangeLabel.textContent = gantt.rangeLabel(); });
+document.getElementById("next").addEventListener("click", () => { gantt.shift(1); rangeLabel.textContent = gantt.rangeLabel(); });
+document.getElementById("today").addEventListener("click", () => { gantt.goToday(); rangeLabel.textContent = gantt.rangeLabel(); });
+document.getElementById("add-task").addEventListener("click", () => taskForm.open());
+document.getElementById("add-decision").addEventListener("click", () => decisionForm.open());
+
+loadTasks();
+loadDecisions();
+```
+
+- [ ] **Step 8: ブラウザで確認する**
+
+`http://localhost:5003` を再読み込みして確認する:
+1. 「＋ ディシジョン」→ 名前「経営会議」、日付＝今週のいずれかの日、時刻「10:00」で保存すると、見出し下の「ディシジョン」行のその日の位置に「◆ 経営会議」が表示され、全タスク行にその日の紫の破線が引かれる
+2. ◆にマウスを乗せると、日付・時刻・名前が表示される
+3. ◆をクリックすると編集ダイアログが開く。名前と日付を変えて保存すると位置と表示が変わる。時刻を空にして保存しても保存できる
+4. 編集ダイアログの「削除」で、確認後に◆と破線が消える
+5. 同じ日に 2 件登録すると横に並んで表示され、それぞれクリックで個別に編集できる
+6. 領域で絞り込んでも、ディシジョンポイントは表示されたまま
+7. 「月」表示・◀▶ での移動で、期間外のディシジョンは表示されず、期間内に入ると表示される
+8. 今日の日付のディシジョンを作ると、青い今日線と紫の破線が両方見分けられる
+
+Run: `.venv/bin/pytest -v`
+Expected: all passed
+
+- [ ] **Step 9: コミットする**
+
+```bash
+git add static
+git commit -m "feat: ガントチャートにディシジョンポイントの表示・追加・編集・削除を追加
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 11: 全体確認と README
 
 **Files:**
 - Create: `README.md`
@@ -2121,7 +2748,7 @@ Expected: all passed、警告以外の出力なし
 
 サーバーを一度止めて `./run.sh` で起動し直し、`http://localhost:5003` で次の流れを確認する:
 1. ブレストに 2 件書く → 1 件を保管庫へ移す → 本文を書く → タスク化 → ガントに表示され ✓ が付く
-2. タスクを完了にする → 期限切れのタスクを 1 件作り、赤く強調されることを確認する
+2. タスクを完了にする → 期限切れのタスクを 1 件作り、赤く強調されることを確認する → ディシジョンポイントを 1 件追加し、◆と破線が表示されることを確認する
 3. サーバーを止めて起動し直し、再読み込みしてもすべてのデータが残っている
 4. サーバーを止めた状態で操作すると、右下に「サーバーに接続できません」のトーストが出る
 5. ブラウザのコンソールにエラーがない
