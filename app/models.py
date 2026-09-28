@@ -252,6 +252,11 @@ class AreaUpdate(BaseModel):
     color: Optional[ColorStr] = None
 
 
+class ReorderIn(BaseModel):
+    # 画面に表示されている順の ID
+    ids: Annotated[list[int], Field(min_length=1)]
+
+
 class NoteCreate(BaseModel):
     body: Annotated[str, StringConstraints(max_length=200000)] = ""
     tags: list[TagName] = []

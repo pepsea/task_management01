@@ -1,13 +1,14 @@
 import re
 import sqlite3
 from datetime import date
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.db import get_conn, now_iso
 from app.markdown_render import render_markdown
-from app.models import MarkdownIn, MarkdownOut, NoteCreate, NoteOut, NoteUpdate
-from app.ordering import top_position
+from app.models import MarkdownIn, MarkdownOut, NoteCreate, NoteOut, NoteUpdate, ReorderIn
+from app.ordering import reorder, top_position
 from app.routers.tags import set_item_tags, tags_by_item
 
 router = APIRouter(prefix="/api", tags=["notes"])
@@ -63,6 +64,7 @@ def list_notes(
     q: str | None = None,
     tag: str | None = None,
     archived: bool = False,
+    sort: Literal["date", "manual"] = "date",
     conn: sqlite3.Connection = Depends(get_conn),
 ):
     conditions = ["n.archived_at IS NOT NULL" if archived else "n.archived_at IS NULL"]
@@ -76,9 +78,15 @@ def list_notes(
             "n.id IN (SELECT nt.note_id FROM note_tags nt JOIN tags g ON g.id = nt.tag_id WHERE g.name = ?)"
         )
         params.append(tag)
-    # メモ帳は ★（ピン留め）を先頭に、その中はメモの日付の新しい順（同じ日付は後から作ったものが上）。
+    # メモ帳は ★（ピン留め）を先頭に、その中は sort に応じて
+    #   date: メモの日付の新しい順（同じ日付は後から作ったものが上）／ manual: ドラッグで決めた順。
     # アーカイブはアーカイブの新しい順
-    order = "n.archived_at DESC, n.id DESC" if archived else "n.pinned DESC, n.note_date DESC, n.id DESC"
+    if archived:
+        order = "n.archived_at DESC, n.id DESC"
+    elif sort == "manual":
+        order = "n.pinned DESC, n.position, n.id DESC"
+    else:
+        order = "n.pinned DESC, n.note_date DESC, n.id DESC"
     rows = conn.execute(f"SELECT n.* FROM notes n WHERE {' AND '.join(conditions)} ORDER BY {order}", params)
     return _with_tags(conn, [dict(r) for r in rows])
 
@@ -95,6 +103,12 @@ def create_note(body: NoteCreate, conn: sqlite3.Connection = Depends(get_conn)):
     set_item_tags(conn, "note", cur.lastrowid, body.tags)
     conn.commit()
     return fetch_note(conn, cur.lastrowid)
+
+
+@router.post("/notes/reorder", status_code=204)
+def reorder_notes(body: ReorderIn, conn: sqlite3.Connection = Depends(get_conn)):
+    reorder(conn, "notes", body.ids, "メモが見つかりません")
+    return Response(status_code=204)
 
 
 @router.get("/notes/{note_id}", response_model=NoteOut)

@@ -157,3 +157,40 @@ def test_existing_notes_get_date_from_created_at(tmp_path, monkeypatch):
     conn = sqlite3.connect(path)
     assert conn.execute("SELECT note_date FROM notes").fetchone() == ("2026-09-15",)
     conn.close()
+
+
+def test_manual_sort_and_reorder(client):
+    def note(title, day):
+        return client.post("/api/notes", json={"body": f"# {title}", "note_date": day}).json()["id"]
+
+    a = note("A", "2026-09-01")
+    b = note("B", "2026-10-01")
+    c = note("C", "2026-09-15")
+    # 手動の初期の並びは作った順（新しいものが上）
+    assert titles(client, sort="manual") == ["C", "B", "A"]
+    assert client.post("/api/notes/reorder", json={"ids": [a, c, b]}).status_code == 204
+    assert titles(client, sort="manual") == ["A", "C", "B"]
+    # 日付順は並べ替えの影響を受けない
+    assert titles(client) == ["B", "C", "A"]
+    assert titles(client, sort="date") == ["B", "C", "A"]
+    client.patch(f"/api/notes/{b}", json={"pinned": True})
+    assert titles(client, sort="manual") == ["B", "A", "C"]
+
+
+def test_new_note_goes_top_in_manual_sort(client):
+    a = client.post("/api/notes", json={"body": "# A"}).json()["id"]
+    b = client.post("/api/notes", json={"body": "# B"}).json()["id"]
+    client.post("/api/notes/reorder", json={"ids": [a, b]})
+    client.post("/api/notes", json={"body": "# C"})
+    assert titles(client, sort="manual") == ["C", "A", "B"]
+
+
+def test_reorder_notes_rejects_bad_ids(client):
+    a = client.post("/api/notes", json={"body": "# A"}).json()["id"]
+    assert client.post("/api/notes/reorder", json={"ids": [a, a]}).status_code == 422
+    assert client.post("/api/notes/reorder", json={"ids": [999]}).status_code == 404
+    assert client.post("/api/notes/reorder", json={"ids": []}).status_code == 422
+
+
+def test_invalid_sort_rejected(client):
+    assert client.get("/api/notes", params={"sort": "title"}).status_code == 422
