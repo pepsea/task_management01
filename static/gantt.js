@@ -61,10 +61,20 @@ function linkMark(links) {
   }, usable.length > 1 ? `🔗${usable.length}` : "🔗");
 }
 
-// 締切（期限）の早い順。同じ締切は開始の早い順
+// 今日のタスク → その他の未完了 → 完了（完了は今日のタスクでも一番下）。
+// それぞれ締切（期限）の早い順、同じ締切は開始の早い順
+function sortRank(task, today) {
+  if (task.done) return 2;
+  return task.today_on === today ? 0 : 1;
+}
+
 function sortTasks(tasks) {
+  const today = todayKey();
   return [...tasks].sort(
-    (a, b) => a.due_at.localeCompare(b.due_at) || a.start_at.localeCompare(b.start_at) || a.id - b.id,
+    (a, b) => sortRank(a, today) - sortRank(b, today)
+      || a.due_at.localeCompare(b.due_at)
+      || a.start_at.localeCompare(b.start_at)
+      || a.id - b.id,
   );
 }
 
