@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.db import get_conn, now_iso
 from app.models import IdeaCreate, IdeaOut, IdeaReorder, IdeaUpdate
+from app.ordering import reorder, top_position
 from app.routers.tags import set_idea_tags, tags_by_idea
 
 router = APIRouter(prefix="/api", tags=["ideas"])
@@ -12,11 +13,6 @@ SELECT_IDEAS = """
 SELECT i.*, (SELECT COUNT(*) FROM tasks t WHERE t.idea_id = i.id) AS task_count
 FROM ideas i
 """
-
-
-def top_position(conn: sqlite3.Connection) -> int:
-    """新しいアイディアを一覧の一番上に置くための並び順の値。"""
-    return conn.execute("SELECT COALESCE(MIN(position), 0) - 1 FROM ideas").fetchone()[0]
 
 
 def _like_pattern(q: str) -> str:
@@ -71,7 +67,7 @@ def create_idea(body: IdeaCreate, conn: sqlite3.Connection = Depends(get_conn)):
     now = now_iso()
     cur = conn.execute(
         "INSERT INTO ideas (title, body, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-        (body.title, body.body, top_position(conn), now, now),
+        (body.title, body.body, top_position(conn, "ideas"), now, now),
     )
     set_idea_tags(conn, cur.lastrowid, body.tags)
     conn.commit()
@@ -80,24 +76,7 @@ def create_idea(body: IdeaCreate, conn: sqlite3.Connection = Depends(get_conn)):
 
 @router.post("/ideas/reorder", status_code=204)
 def reorder_ideas(body: IdeaReorder, conn: sqlite3.Connection = Depends(get_conn)):
-    if len(set(body.ids)) != len(body.ids):
-        raise HTTPException(status_code=422, detail="同じアイディアが重複しています")
-    placeholders = ",".join("?" * len(body.ids))
-    found = conn.execute(f"SELECT COUNT(*) FROM ideas WHERE id IN ({placeholders})", body.ids).fetchone()[0]
-    if found != len(body.ids):
-        raise HTTPException(status_code=404, detail="アイディアが見つかりません")
-    # 同じ値の並び順があると順番が決まらないので、まず全体を 0, 1, 2… に振り直す
-    ordered = conn.execute("SELECT id FROM ideas ORDER BY position, id DESC").fetchall()
-    for position, (idea_id,) in enumerate(ordered):
-        conn.execute("UPDATE ideas SET position = ? WHERE id = ?", (position, idea_id))
-    # 渡されたアイディアが使っている並び順の値を、渡された順に割り当て直す。
-    # 絞り込みで見えていないアイディアの位置は変わらない
-    slots = sorted(
-        r[0] for r in conn.execute(f"SELECT position FROM ideas WHERE id IN ({placeholders})", body.ids)
-    )
-    for position, idea_id in zip(slots, body.ids):
-        conn.execute("UPDATE ideas SET position = ? WHERE id = ?", (position, idea_id))
-    conn.commit()
+    reorder(conn, "ideas", body.ids, "アイディアが見つかりません")
     return Response(status_code=204)
 
 

@@ -250,3 +250,38 @@ class AreaOut(MasterOut):
 class AreaUpdate(BaseModel):
     name: Optional[MasterName] = None
     color: Optional[ColorStr] = None
+
+
+class NoteCreate(BaseModel):
+    body: Annotated[str, StringConstraints(max_length=200000)] = ""
+    tags: list[TagName] = []
+
+
+class NoteUpdate(BaseModel):
+    body: Optional[Annotated[str, StringConstraints(max_length=200000)]] = None
+    tags: Optional[list[TagName]] = None
+    pinned: Optional[bool] = None
+    archived: Optional[bool] = None
+
+
+class NoteOut(BaseModel):
+    id: int
+    title: str
+    body: str
+    pinned: bool
+    archived_at: Optional[str]
+    created_at: str
+    updated_at: str
+    tags: list[TagOut]
+
+
+class ReorderIn(BaseModel):
+    ids: Annotated[list[int], Field(min_length=1)]
+
+
+class MarkdownIn(BaseModel):
+    blocks: Annotated[list[Annotated[str, StringConstraints(max_length=200000)]], Field(max_length=2000)]
+
+
+class MarkdownOut(BaseModel):
+    html: list[str]

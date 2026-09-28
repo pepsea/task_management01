@@ -23,31 +23,48 @@ def get_or_create_tag(conn: sqlite3.Connection, name: str) -> int:
     return cur.lastrowid
 
 
-def set_idea_tags(conn: sqlite3.Connection, idea_id: int, names: list[str]) -> None:
+# タグはアイディアとメモで共用する。結び付けの表と、その表でのアイディア／メモの列名
+TAG_LINKS = {
+    "idea": ("idea_tags", "idea_id"),
+    "note": ("note_tags", "note_id"),
+}
+
+
+def set_item_tags(conn: sqlite3.Connection, kind: str, item_id: int, names: list[str]) -> None:
+    table, key = TAG_LINKS[kind]
     unique_names = list(dict.fromkeys(names))
-    conn.execute("DELETE FROM idea_tags WHERE idea_id = ?", (idea_id,))
+    conn.execute(f"DELETE FROM {table} WHERE {key} = ?", (item_id,))
     for position, name in enumerate(unique_names):
         conn.execute(
-            "INSERT INTO idea_tags (idea_id, tag_id, position) VALUES (?, ?, ?)",
-            (idea_id, get_or_create_tag(conn, name), position),
+            f"INSERT INTO {table} ({key}, tag_id, position) VALUES (?, ?, ?)",
+            (item_id, get_or_create_tag(conn, name), position),
         )
 
 
-def tags_by_idea(conn: sqlite3.Connection, idea_ids: list[int]) -> dict[int, list[dict]]:
-    result: dict[int, list[dict]] = {idea_id: [] for idea_id in idea_ids}
-    if not idea_ids:
+def tags_by_item(conn: sqlite3.Connection, kind: str, item_ids: list[int]) -> dict[int, list[dict]]:
+    table, key = TAG_LINKS[kind]
+    result: dict[int, list[dict]] = {item_id: [] for item_id in item_ids}
+    if not item_ids:
         return result
-    placeholders = ",".join("?" * len(idea_ids))
+    placeholders = ",".join("?" * len(item_ids))
     rows = conn.execute(
-        f"""SELECT it.idea_id, g.id, g.name, g.color FROM idea_tags it
+        f"""SELECT it.{key}, g.id, g.name, g.color FROM {table} it
             JOIN tags g ON g.id = it.tag_id
-            WHERE it.idea_id IN ({placeholders})
-            ORDER BY it.idea_id, it.position""",
-        idea_ids,
+            WHERE it.{key} IN ({placeholders})
+            ORDER BY it.{key}, it.position""",
+        item_ids,
     )
-    for idea_id, tag_id, name, color in rows:
-        result[idea_id].append({"id": tag_id, "name": name, "color": color})
+    for item_id, tag_id, name, color in rows:
+        result[item_id].append({"id": tag_id, "name": name, "color": color})
     return result
+
+
+def set_idea_tags(conn: sqlite3.Connection, idea_id: int, names: list[str]) -> None:
+    set_item_tags(conn, "idea", idea_id, names)
+
+
+def tags_by_idea(conn: sqlite3.Connection, idea_ids: list[int]) -> dict[int, list[dict]]:
+    return tags_by_item(conn, "idea", idea_ids)
 
 
 @router.get("/tags", response_model=list[TagOut])

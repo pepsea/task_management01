@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
 from app.db import init_db
-from app.routers import brainstorm, decisions, ideas, masters, tags, tasks
+from app.routers import brainstorm, decisions, ideas, masters, notes, tags, tasks
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -40,5 +40,6 @@ app.include_router(brainstorm.router)
 app.include_router(decisions.router)
 app.include_router(tags.router)
 app.include_router(masters.router)
+app.include_router(notes.router)
 # API ルーターはこの行より上で登録する（"/" のマウントは全パスに一致するため最後に置く）
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
