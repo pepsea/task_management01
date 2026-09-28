@@ -1,6 +1,6 @@
 import { api } from "./api.js";
 import { createBlockEditor } from "./blockEditor.js";
-import { formatStamp } from "./dates.js";
+import { formatDateLabel, formatStamp } from "./dates.js";
 import { createSortable } from "./sortable.js";
 import { el, tagChip, toast } from "./ui.js";
 
@@ -16,6 +16,7 @@ const status = document.getElementById("note-status");
 const stamp = document.getElementById("note-stamp");
 const tagChips = document.getElementById("note-tags");
 const tagInput = document.getElementById("note-tag-input");
+const dateInput = document.getElementById("note-date");
 
 let notes = [];
 let selectedId = null;
@@ -74,7 +75,8 @@ function renderList() {
         },
       }, note.pinned ? "★" : "☆"),
       el("span", { class: "idea-title", title: note.title }, note.title),
-      note.tags.length ? el("span", { class: "tag-chips" }, note.tags.map((t) => tagChip(t))) : null)));
+      note.tags.length ? el("span", { class: "tag-chips" }, note.tags.map((t) => tagChip(t))) : null,
+      el("span", { class: "note-list-date", title: note.note_date }, formatDateLabel(note.note_date)))));
 }
 
 async function loadTags() {
@@ -161,6 +163,7 @@ async function select(id, { startWriting = false } = {}) {
     tagInput.value = "";
     status.textContent = "";
     showMeta(note);
+    dateInput.value = note.note_date;
     setEditorVisible(true);
     editor.setValue(note.body);
     if (startWriting) editor.startWriting();
@@ -228,6 +231,24 @@ document.getElementById("note-delete").addEventListener("click", async () => {
 });
 
 document.getElementById("note-close").addEventListener("click", close);
+
+dateInput.addEventListener("change", async () => {
+  if (selectedId === null) return;
+  if (!dateInput.value) {
+    // 日付は空にできないので、元の日付に戻す
+    const note = notes.find((n) => n.id === selectedId);
+    if (note) dateInput.value = note.note_date;
+    return;
+  }
+  try {
+    const updated = await api.updateNote(selectedId, { note_date: dateInput.value });
+    showMeta(updated);
+    status.textContent = "保存済み";
+    await refresh();
+  } catch (err) {
+    toast(err.message);
+  }
+});
 
 tagInput.addEventListener("keydown", (e) => {
   // 日本語入力の変換確定の Enter では追加しない

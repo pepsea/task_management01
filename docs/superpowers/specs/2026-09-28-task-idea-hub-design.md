@@ -287,3 +287,7 @@ task_management01/
 - Markdown はサーバー側で変換（`POST /api/markdown {blocks}`、Python-Markdown + nh3 で無害化）。表・コード・取り消し線・チェックリスト・引用・リンク・区切り線に対応。2 スペースの入れ子リスト可。表・リスト・コードブロックの前に空行がなくても認識する（空行を補ってから変換）
 - API: `GET/POST /api/notes`（q・tag・archived）、`GET/PATCH/DELETE /api/notes/{id}`（body・tags・pinned・archived）、`POST /api/notes/reorder`
 - タグはアイディアと共用（登録画面の「タグ（アイディア・メモ共通）」で管理）
+
+### 10.18 メモの日付
+- `notes.note_date`（`YYYY-MM-DD`、必須）。作成時は今日（`note_date` を渡せばその日）。既存のメモは作成日を入れる
+- 編集欄の 📅 で変更（変更で updated_at を更新）。一覧とアーカイブのカードに日付を表示（今年なら年を省略）

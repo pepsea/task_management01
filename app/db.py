@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS notes (
     pinned INTEGER NOT NULL DEFAULT 0,
     position INTEGER NOT NULL DEFAULT 0,
     archived_at TEXT,
+    note_date TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -128,6 +129,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
         """INSERT OR IGNORE INTO related_items (name)
            SELECT related FROM tasks WHERE related != '' GROUP BY related ORDER BY MIN(id)"""
     )
+    # メモの日付（後から追加した列）。既存のメモは作成日を入れる
+    note_columns = {row[1] for row in conn.execute("PRAGMA table_info(notes)")}
+    if "note_date" not in note_columns:
+        conn.execute("ALTER TABLE notes ADD COLUMN note_date TEXT NOT NULL DEFAULT ''")
+    conn.execute("UPDATE notes SET note_date = substr(created_at, 1, 10) WHERE note_date = ''")
     # 領域の色（後から追加した列）。色のない領域には登録順に自動で割り当てる
     area_columns = {row[1] for row in conn.execute("PRAGMA table_info(areas)")}
     if "color" not in area_columns:

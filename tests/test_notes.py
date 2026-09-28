@@ -106,3 +106,48 @@ def test_deleting_tag_removes_it_from_notes(client):
     n = make(client, "# A", tags=["x", "y"])
     client.delete(f"/api/tags/{n['tags'][0]['id']}")
     assert [t["name"] for t in client.get(f"/api/notes/{n['id']}").json()["tags"]] == ["y"]
+
+
+def test_note_date_defaults_to_today(client):
+    from datetime import date
+
+    assert make(client)["note_date"] == date.today().isoformat()
+
+
+def test_note_date_can_be_set_and_changed(client):
+    r = client.post("/api/notes", json={"body": "# A", "note_date": "2026-10-01"})
+    assert r.json()["note_date"] == "2026-10-01"
+    r = client.patch(f"/api/notes/{r.json()['id']}", json={"note_date": "2026-12-24"})
+    assert r.status_code == 200
+    assert r.json()["note_date"] == "2026-12-24"
+
+
+@pytest.mark.parametrize("value", ["2026/10/01", "2026-02-30", "", None])
+def test_invalid_note_date_rejected(client, value):
+    n = make(client)
+    assert client.patch(f"/api/notes/{n['id']}", json={"note_date": value}).status_code == 422
+
+
+def test_existing_notes_get_date_from_created_at(tmp_path, monkeypatch):
+    import sqlite3
+
+    from app.db import init_db
+
+    path = tmp_path / "old.db"
+    conn = sqlite3.connect(path)
+    conn.execute(
+        """CREATE TABLE notes (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,
+           body TEXT NOT NULL DEFAULT '', pinned INTEGER NOT NULL DEFAULT 0,
+           position INTEGER NOT NULL DEFAULT 0, archived_at TEXT,
+           created_at TEXT NOT NULL, updated_at TEXT NOT NULL)"""
+    )
+    conn.execute(
+        "INSERT INTO notes (title, created_at, updated_at) VALUES ('既存', '2026-09-15T10:00:00', 'x')"
+    )
+    conn.commit()
+    conn.close()
+    monkeypatch.setenv("APP_DB_PATH", str(path))
+    init_db()
+    conn = sqlite3.connect(path)
+    assert conn.execute("SELECT note_date FROM notes").fetchone() == ("2026-09-15",)
+    conn.close()

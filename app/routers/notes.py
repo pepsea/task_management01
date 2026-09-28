@@ -1,5 +1,6 @@
 import re
 import sqlite3
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 
@@ -85,8 +86,10 @@ def list_notes(
 def create_note(body: NoteCreate, conn: sqlite3.Connection = Depends(get_conn)):
     now = now_iso()
     cur = conn.execute(
-        "INSERT INTO notes (title, body, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-        (derive_title(body.body), body.body, top_position(conn, "notes"), now, now),
+        """INSERT INTO notes (title, body, position, note_date, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (derive_title(body.body), body.body, top_position(conn, "notes"),
+         body.note_date or date.today().isoformat(), now, now),
     )
     set_item_tags(conn, "note", cur.lastrowid, body.tags)
     conn.commit()
@@ -109,7 +112,7 @@ def update_note(note_id: int, body: NoteUpdate, conn: sqlite3.Connection = Depen
     fetch_note(conn, note_id)
     changes = body.model_dump(exclude_unset=True)
     if any(value is None for value in changes.values()):
-        raise HTTPException(status_code=422, detail="body・tags・pinned・archived は null にできません")
+        raise HTTPException(status_code=422, detail="body・tags・pinned・archived・note_date は null にできません")
     # ピン留め・アーカイブは内容の更新ではないので updated_at は変えない
     if "pinned" in changes:
         conn.execute("UPDATE notes SET pinned = ? WHERE id = ?", (int(changes["pinned"]), note_id))
@@ -118,7 +121,9 @@ def update_note(note_id: int, body: NoteUpdate, conn: sqlite3.Connection = Depen
         conn.execute("UPDATE notes SET archived_at = ? WHERE id = ?", (archived_at, note_id))
     if "tags" in changes:
         set_item_tags(conn, "note", note_id, changes["tags"])
-    if "body" in changes or "tags" in changes:
+    if "note_date" in changes:
+        conn.execute("UPDATE notes SET note_date = ? WHERE id = ?", (changes["note_date"], note_id))
+    if "body" in changes or "tags" in changes or "note_date" in changes:
         conn.execute("UPDATE notes SET updated_at = ? WHERE id = ?", (now_iso(), note_id))
     if "body" in changes:
         conn.execute(

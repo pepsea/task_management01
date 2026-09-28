@@ -25,6 +25,9 @@
       <p id="note-placeholder" class="empty idea-placeholder">左の一覧からメモを選ぶか、「＋ 新しいメモ」で書き始めてください。</p>
       <div id="note-editor" class="note-editor" hidden>
         <div class="editor-actions">
+          <label class="note-date" title="メモの日付（作成時は今日）">📅
+            <input id="note-date" type="date" aria-label="メモの日付" required>
+          </label>
           <div class="tag-editor">
             <span id="note-tags" class="tag-chips"></span>
             <input id="note-tag-input" list="tag-options" placeholder="＋タグ（Enter）" aria-label="タグを追加">

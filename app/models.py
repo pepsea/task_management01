@@ -255,6 +255,13 @@ class AreaUpdate(BaseModel):
 class NoteCreate(BaseModel):
     body: Annotated[str, StringConstraints(max_length=200000)] = ""
     tags: list[TagName] = []
+    # メモの日付。省略すると今日
+    note_date: Optional[str] = None
+
+    @field_validator("note_date")
+    @classmethod
+    def validate_note_date(cls, value):
+        return check_date(value)
 
 
 class NoteUpdate(BaseModel):
@@ -262,6 +269,12 @@ class NoteUpdate(BaseModel):
     tags: Optional[list[TagName]] = None
     pinned: Optional[bool] = None
     archived: Optional[bool] = None
+    note_date: Optional[str] = None
+
+    @field_validator("note_date")
+    @classmethod
+    def validate_note_date(cls, value):
+        return check_date(value)
 
 
 class NoteOut(BaseModel):
@@ -270,6 +283,7 @@ class NoteOut(BaseModel):
     body: str
     pinned: bool
     archived_at: Optional[str]
+    note_date: str
     created_at: str
     updated_at: str
     tags: list[TagOut]

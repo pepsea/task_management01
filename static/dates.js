@@ -48,6 +48,13 @@ export function formatStamp(iso) {
   return `${year}${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// "YYYY-MM-DD" → 今年なら "M/D"、それ以外は "YYYY/M/D"
+export function formatDateLabel(s) {
+  const d = parseDate(s);
+  const year = d.getFullYear() === new Date().getFullYear() ? "" : `${d.getFullYear()}/`;
+  return `${year}${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 export function isWeekend(d) {
   return d.getDay() === 0 || d.getDay() === 6;
 }

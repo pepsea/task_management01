@@ -1,5 +1,5 @@
 import { api } from "./api.js";
-import { formatStamp } from "./dates.js";
+import { formatDateLabel, formatStamp } from "./dates.js";
 import { el, tagChip, toast } from "./ui.js";
 
 const SEARCH_MS = 300;
@@ -68,7 +68,9 @@ function noteCard(note, html) {
     body.textContent = "（本文なし）";
   }
   return el("article", { class: "archive-card" },
-    el("header", { class: "archive-card-head" }, el("h2", {}, note.title)),
+    el("header", { class: "archive-card-head" },
+      el("h2", {}, note.title),
+      el("span", { class: "note-list-date" }, `📅 ${formatDateLabel(note.note_date)}`)),
     note.tags.length ? el("div", { class: "tag-chips" }, note.tags.map((t) => tagChip(t))) : null,
     body,
     el("footer", { class: "archive-card-foot" },
