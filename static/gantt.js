@@ -1,24 +1,24 @@
 import { addDays, dayDiff, formatShort, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek, todayKey } from "./dates.js";
 import { el } from "./ui.js";
 
-// 1 列の単位ごとの設定。count は表示する列数、minColWidth は画面が狭いときの列幅の下限
-// （広いときは空き幅いっぱいまで広げる）。nominalDays は列幅の下限を 1 日あたりに換算するための日数
+// 1 列の単位ごとの設定。表示する列数は空き幅に minColWidth の列が何本入るかで決め、
+// minCount〜maxCount に収める（入りきらないときは横スクロール）。
+// nominalDays は列幅の下限を 1 日あたりに換算するための日数
 const SCALES = {
-  day: { count: 14, minColWidth: 28, nominalDays: 1 },
-  week: { count: 13, minColWidth: 44, nominalDays: 7 },
-  month: { count: 12, minColWidth: 56, nominalDays: 30 },
+  day: { minCount: 7, maxCount: 21, minColWidth: 38, nominalDays: 1 },
+  week: { minCount: 4, maxCount: 13, minColWidth: 56, nominalDays: 7 },
+  month: { minCount: 3, maxCount: 12, minColWidth: 64, nominalDays: 30 },
 };
 // style.css の .g-cells の列幅の合計＋右罫線
-const CELLS_WIDTH = 548;
+const CELLS_WIDTH = 671;
 // ディシジョン名 1 件ぶんのおおよその表示幅（重なり判定用）と 1 段の高さ
-const DECISION_LABEL_WIDTH = 90;
-const DECISION_LANE_HEIGHT = 16;
+const DECISION_LABEL_WIDTH = 122;
+const DECISION_LANE_HEIGHT = 20;
 const PRIORITY_LABEL = { high: "高", mid: "中", low: "低" };
 const COLUMNS = ["☀", "領域", "関連項目", "タスク名", "開始", "期限", "優先", "完了"];
 
 // 表示期間を列の配列にする。各列は { start: Date, days: その列が占める日数 }
-function buildColumns(scale, anchor) {
-  const { count } = SCALES[scale];
+function buildColumns(scale, anchor, count) {
   const columns = [];
   if (scale === "day" || scale === "week") {
     const step = scale === "day" ? 1 : 7;
@@ -59,8 +59,14 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
   let decisions = [];
 
   // 表示期間と、日付 → 横位置（px）の換算をまとめたもの。render のたびに作り直す
+  function columnCount() {
+    const { minCount, maxCount, minColWidth } = SCALES[scale];
+    const available = root.clientWidth - CELLS_WIDTH;
+    return Math.min(maxCount, Math.max(minCount, Math.floor(available / minColWidth)));
+  }
+
   function computeLayout() {
-    const columns = buildColumns(scale, anchor);
+    const columns = buildColumns(scale, anchor, columnCount());
     const start = columns[0].start;
     const totalDays = columns.reduce((sum, c) => sum + c.days, 0);
     const { minColWidth, nominalDays } = SCALES[scale];
@@ -221,7 +227,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
   }
 
   function rangeLabel() {
-    const columns = buildColumns(scale, anchor);
+    const columns = buildColumns(scale, anchor, columnCount());
     const last = columns[columns.length - 1];
     const end = addDays(last.start, last.days - 1);
     const f = (d) => `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
