@@ -97,13 +97,15 @@ function linkList(links) {
   }, `🔗 ${linkText(link)}`)));
 }
 
-// 今日のタスク → その他の未完了 → 完了（完了は今日のタスクでも一番下）。
-// それぞれ締切（期限）の早い順、同じ締切は開始の早い順
 // 土曜は "sat"、日曜は "sun"、平日は ""
 function weekendOf(date) {
   if (!isWeekend(date)) return "";
   return date.getDay() === 6 ? "sat" : "sun";
 }
+
+// 並び順: 今日のタスク → その他の未完了 → 完了（完了は今日のタスクでも一番下）。
+// それぞれの中は優先度の高い順（高 → 中 → 低）、同じ優先度は締切の早い順、同じ締切は開始の早い順
+const PRIORITY_ORDER = { high: 0, mid: 1, low: 2 };
 
 function sortRank(task, today) {
   if (task.done) return 2;
@@ -114,6 +116,7 @@ function sortTasks(tasks) {
   const today = todayKey();
   return [...tasks].sort(
     (a, b) => sortRank(a, today) - sortRank(b, today)
+      || PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
       || a.due_at.localeCompare(b.due_at)
       || a.start_at.localeCompare(b.start_at)
       || a.id - b.id,
