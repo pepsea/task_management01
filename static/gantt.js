@@ -5,9 +5,11 @@ import { el, isWebUrl } from "./ui.js";
 // minCount〜maxCount に収める（入りきらないときは横スクロール）。
 // nominalDays は列幅の下限を 1 日あたりに換算するための日数
 const SCALES = {
-  day: { minCount: 7, maxCount: 21, minColWidth: 38, nominalDays: 1 },
-  week: { minCount: 4, maxCount: 13, minColWidth: 56, nominalDays: 7 },
-  month: { minCount: 3, maxCount: 12, minColWidth: 64, nominalDays: 30 },
+  // Windows の表示拡大（125%・150%）などで画面が狭く扱われても日数が減りすぎないよう、
+  // 列幅の下限は小さめにして、日表示は最低 14 日を並べる
+  day: { minCount: 14, maxCount: 21, minColWidth: 18, nominalDays: 1 },
+  week: { minCount: 8, maxCount: 13, minColWidth: 36, nominalDays: 7 },
+  month: { minCount: 6, maxCount: 12, minColWidth: 44, nominalDays: 30 },
 };
 // 左の表の列。width は初期幅（px）。detail の列は「開始・期限・優先・完了」としてまとめて折りたためる。
 // 見出しの右端をドラッグすると幅を変えられ、幅と折りたたみの状態はブラウザ（localStorage）に保存する
@@ -367,6 +369,8 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     // 折りたたみ中は期限の列が見えないので、期限が近い・過ぎたタスク名を赤くする（style.css）
     root.classList.toggle("details-collapsed", table.collapsed);
     const layout = computeLayout();
+    // 列が細いときは日付見出しの文字を小さくする（style.css の .narrow-cols）
+    root.classList.toggle("narrow-cols", layout.pxPerDay * SCALES[scale].nominalDays < 30);
     const now = new Date();
     const rows = sortTasks(tasks).map((t) => taskRow(t, layout, now));
     root.replaceChildren(

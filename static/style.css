@@ -439,3 +439,6 @@ a.button {
 }
 a.button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 a.button.primary:hover { opacity: .9; }
+
+/* 日付の列が細いとき（狭い画面）は見出しの文字を小さくする */
+.narrow-cols .g-col { font-size: 11px; letter-spacing: -.5px; }
