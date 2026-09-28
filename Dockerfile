@@ -18,11 +18,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY static ./static
 
-# root 以外のユーザーで動かす。データは /app/data（docker-compose.yml でホストの ./data をつなぐ）
+# アプリは root 以外のユーザー（appuser）で動かす。データは /app/data（docker-compose.yml でホストの ./data をつなぐ）。
+# 起動時に docker-entrypoint.sh が /app/data の書き込み権限を整えてから appuser に切り替える
 RUN useradd --create-home --uid 1000 appuser \
     && mkdir -p /app/data \
-    && chown -R appuser /app/data
-USER appuser
+    && chown -R appuser:appuser /app/data
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 EXPOSE 5003
 

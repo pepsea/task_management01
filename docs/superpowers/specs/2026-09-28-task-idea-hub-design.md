@@ -319,3 +319,4 @@ task_management01/
 - `Dockerfile`（python:3.14-slim、TZ=Asia/Tokyo、root 以外の appuser で uvicorn を 5003 番で起動、/api/health でヘルスチェック）
 - `docker-compose.yml`: `127.0.0.1:5003:5003`（このパソコンからのみ）、`./data` を `/app/data` にマウント（既存のデータをそのまま使う）、`restart: unless-stopped`
 - 依存は実行用 `requirements.txt` と開発・テスト用 `requirements-dev.txt` に分けた
+- 起動は `docker-entrypoint.sh` 経由: root で起動し、`/app/data` を appuser が書き込めなければ所有者を appuser に変更してから、`setpriv` で appuser に切り替えて uvicorn を実行する（Linux で ./data が root の持ち物になり「unable to open database file」で起動に失敗した問題への対応）

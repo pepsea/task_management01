@@ -21,7 +21,7 @@ docker compose up -d
 - ログ: `docker compose logs -f`
 - データは `./data/app.db` に保存され、コンテナを作り直しても消えない
 - 標準ではこのパソコンからだけ開ける。社内の他の PC からも使う場合は `docker-compose.yml` の `ports` を `"5003:5003"` に変える
-- Linux で動かす場合、`./data` はコンテナ内のユーザー（UID 1000）が書き込めるようにしておく
+- Linux でも `docker compose up -d` だけで動く。`./data` が無い・書き込めない場合は、起動時にコンテナが `./data` の所有者を UID 1000 に変更する（ホスト側でファイルを直接触るときは `sudo` が必要になることがある）
 
 ## Docker を使わずに動かす
 

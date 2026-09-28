@@ -1,0 +1,2 @@
+# シェルスクリプトは Windows で clone しても LF のまま（CRLF だとコンテナで起動できない）
+*.sh text eol=lf
