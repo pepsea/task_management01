@@ -4,18 +4,29 @@ import { initDecisionForm } from "./decisionForm.js";
 import { createGantt } from "./gantt.js";
 import { initIdeas } from "./ideas.js";
 import { initTaskForm } from "./taskForm.js";
+import { todayKey } from "./dates.js";
 import { el, toast } from "./ui.js";
 
 const areaFilter = document.getElementById("area-filter");
 const rangeLabel = document.getElementById("range-label");
+const todayFilter = document.getElementById("today-filter");
 let tasks = [];
 let decisions = [];
+let todayOnly = false;
 
 const gantt = createGantt(document.getElementById("gantt"), {
   onEdit: (task) => taskForm.open({ task }),
   onToggleDone: async (task, done) => {
     try {
       await api.updateTask(task.id, { done });
+    } catch (err) {
+      toast(err.message);
+    }
+    await loadTasks();
+  },
+  onToggleToday: async (task, on) => {
+    try {
+      await api.updateTask(task.id, { today_on: on ? todayKey() : null });
     } catch (err) {
       toast(err.message);
     }
@@ -41,13 +52,20 @@ initBrainstorm({
 });
 
 function renderGantt() {
-  gantt.render(tasks, decisions);
+  const today = todayKey();
+  const todayTasks = tasks.filter((t) => t.today_on === today);
+  document.getElementById("today-count").textContent = String(todayTasks.length);
+  todayFilter.classList.toggle("on", todayOnly);
+  todayFilter.setAttribute("aria-pressed", String(todayOnly));
+  gantt.render(todayOnly ? todayTasks : tasks, decisions);
   rangeLabel.textContent = gantt.rangeLabel();
 }
 
 async function loadTasks() {
   try {
-    const [areas, loaded] = await Promise.all([api.listAreas(), api.listTasks(areaFilter.value)]);
+    const [areas, related, loaded] = await Promise.all([
+      api.listAreas(), api.listRelated(), api.listTasks(areaFilter.value),
+    ]);
     tasks = loaded;
     const selected = areaFilter.value;
     const areaNames = areas.map((a) => a.name);
@@ -58,7 +76,7 @@ async function loadTasks() {
     // 絞り込み中の領域が登録画面で消された場合は「すべて」に戻す
     areaFilter.value = areaNames.includes(selected) ? selected : "";
     if (areaFilter.value !== selected) tasks = await api.listTasks("");
-    taskForm.setOptions(areas);
+    taskForm.setOptions({ areas, related });
     renderGantt();
   } catch (err) {
     toast(err.message);
@@ -83,6 +101,10 @@ function setScale(scale) {
 }
 
 areaFilter.addEventListener("change", loadTasks);
+todayFilter.addEventListener("click", () => {
+  todayOnly = !todayOnly;
+  renderGantt();
+});
 for (const button of scaleButtons) button.addEventListener("click", () => setScale(button.dataset.scale));
 document.getElementById("prev").addEventListener("click", () => { gantt.shift(-1); rangeLabel.textContent = gantt.rangeLabel(); });
 document.getElementById("next").addEventListener("click", () => { gantt.shift(1); rangeLabel.textContent = gantt.rangeLabel(); });

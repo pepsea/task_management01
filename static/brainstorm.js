@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import { formatStamp } from "./dates.js";
 import { el, toast } from "./ui.js";
 
 export function initBrainstorm({ onPromoted }) {
@@ -13,6 +14,7 @@ export function initBrainstorm({ onPromoted }) {
     list.replaceChildren(...memos.map((memo) =>
       el("li", {},
         el("span", { class: "bs-text" }, memo.text),
+        el("time", { class: "stamp", datetime: memo.created_at, title: "思いついた日時" }, formatStamp(memo.created_at)),
         el("button", { type: "button", title: "アイディア保管庫へ移す", onclick: () => promote(memo) }, "→保管庫"),
         el("button", { type: "button", title: "削除", "aria-label": "削除", onclick: () => remove(memo) }, "×"))));
   }

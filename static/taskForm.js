@@ -21,11 +21,12 @@ export function initTaskForm({ onSaved }) {
 
   let editing = null;
   let ideaId = null;
-  // 登録済みの領域と関連項目（GET /api/areas の結果）
-  let masters = [];
+  // 登録済みの領域と関連項目の名前（互いに独立）
+  let areaNames = [];
+  let relatedNames = [];
 
   function fillAreaOptions(current) {
-    const names = masters.map((a) => a.name);
+    const names = [...areaNames];
     // 登録から消えた値のタスクを編集するときも、今の値を選べるように残す
     if (current && !names.includes(current)) names.push(current);
     field("area").replaceChildren(
@@ -36,8 +37,7 @@ export function initTaskForm({ onSaved }) {
   }
 
   function fillRelatedOptions(current) {
-    const area = masters.find((a) => a.name === field("area").value);
-    const names = area ? area.related.map((r) => r.name) : [];
+    const names = [...relatedNames];
     if (current && !names.includes(current)) names.push(current);
     field("related").replaceChildren(
       el("option", { value: "" }, "（なし）"),
@@ -46,7 +46,6 @@ export function initTaskForm({ onSaved }) {
     field("related").value = current ?? "";
   }
 
-  field("area").addEventListener("change", () => fillRelatedOptions(""));
 
   function open({ task = null, defaults = {} } = {}) {
     editing = task;
@@ -62,7 +61,7 @@ export function initTaskForm({ onSaved }) {
     field("done").checked = Boolean(values.done);
     heading.textContent = task ? "タスクを編集" : "タスクを追加";
     deleteButton.hidden = !task;
-    errorBox.textContent = masters.length ? "" : "領域が未登録です。先に「⚙ 登録」画面で領域を登録してください";
+    errorBox.textContent = areaNames.length ? "" : "領域が未登録です。先に「⚙ 登録」画面で領域を登録してください";
     dialog.showModal();
     field(values.area ? "title" : "area").focus();
   }
@@ -115,8 +114,9 @@ export function initTaskForm({ onSaved }) {
 
   document.getElementById("task-cancel").addEventListener("click", () => dialog.close());
 
-  function setOptions(areas) {
-    masters = areas;
+  function setOptions({ areas, related }) {
+    areaNames = areas.map((a) => a.name);
+    relatedNames = related.map((r) => r.name);
   }
 
   return { open, setOptions };

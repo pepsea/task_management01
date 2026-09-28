@@ -35,8 +35,20 @@ export function formatShort(s) {
   return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// サーバーの ISO 日時（秒・マイクロ秒付き）を「2026/9/28 21:14」形式にする。今年なら年を省く
+export function formatStamp(iso) {
+  const d = new Date(iso);
+  const year = d.getFullYear() === new Date().getFullYear() ? "" : `${d.getFullYear()}/`;
+  return `${year}${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function isWeekend(d) {
   return d.getDay() === 0 || d.getDay() === 6;
+}
+
+// 今日の日付 "YYYY-MM-DD"（ローカル時刻）
+export function todayKey() {
+  return toInputValue(new Date()).slice(0, 10);
 }
 
 export function parseDate(s) {

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>アーカイブ | Task &amp; Idea Hub</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="settings-page">
+  <header class="toolbar">
+    <a href="./" class="settings-link">← ガントに戻る</a>
+    <h1 class="settings-title">アイディアのアーカイブ</h1>
+    <span id="archive-count" class="range-label"></span>
+    <span class="spacer"></span>
+    <input id="archive-search" type="search" placeholder="検索（タイトル・本文）" aria-label="検索">
+    <select id="archive-tag-filter" aria-label="タグで絞り込み">
+      <option value="">すべてのタグ</option>
+    </select>
+  </header>
+
+  <main id="archive-list" class="archive-list"></main>
+
+  <div id="toast-area" class="toast-area" aria-live="polite"></div>
+  <script type="module" src="archive.js"></script>
+</body>
+</html>

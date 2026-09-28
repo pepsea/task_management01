@@ -5,6 +5,7 @@ import { el, tagChip, toast } from "./ui.js";
 const TAG_COLORS = ["#2563eb", "#16a34a", "#dc2626", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#4b5563"];
 
 const areaList = document.getElementById("area-list");
+const relatedList = document.getElementById("related-list");
 const tagList = document.getElementById("tag-list");
 
 // 名前の入力欄。Enter かフォーカスを外したときに、変わっていれば onRename を呼ぶ
@@ -43,36 +44,36 @@ async function run(action) {
   }
 }
 
-function areaCard(area) {
-  const addRelated = el("form", { class: "add-row small" },
-    el("input", { name: "name", placeholder: "関連項目を追加（例：PJ-A）", "aria-label": `${area.name} に関連項目を追加`, required: true }),
-    el("button", { type: "submit" }, "追加"));
-  addRelated.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const name = addRelated.elements.namedItem("name").value.trim();
-    if (name) run(() => api.createRelated(area.id, name));
-  });
+// 領域・関連項目の 1 行。名前はその場で変更でき、× で削除する
+function masterRow(item, label, rename, remove) {
+  return el("li", {},
+    nameInput(item.name, `${label}名`, (name) => rename(item.id, name)),
+    el("button", {
+      type: "button",
+      class: "danger",
+      "aria-label": `${label}「${item.name}」を削除`,
+      onclick: () => confirm(`${label}「${item.name}」を削除しますか？`) && run(() => remove(item.id)),
+    }, "削除"));
+}
 
-  return el("div", { class: "area-card" },
-    el("div", { class: "area-head" },
-      nameInput(area.name, "領域名", (name) => api.renameArea(area.id, name)),
-      el("button", {
-        type: "button",
-        class: "danger",
-        onclick: () => confirm(`領域「${area.name}」と、その関連項目を削除しますか？`) && run(() => api.deleteArea(area.id)),
-      }, "削除")),
-    el("ul", { class: "related-list" },
-      area.related.length
-        ? area.related.map((r) => el("li", {},
-          nameInput(r.name, "関連項目名", (name) => api.renameRelated(r.id, name)),
-          el("button", {
-            type: "button",
-            class: "danger",
-            "aria-label": `関連項目「${r.name}」を削除`,
-            onclick: () => confirm(`関連項目「${r.name}」を削除しますか？`) && run(() => api.deleteRelated(r.id)),
-          }, "×")))
-        : el("li", { class: "empty" }, "関連項目はまだありません")),
-    addRelated);
+function renderMasters(listEl, items, label, rename, remove) {
+  listEl.replaceChildren(...(items.length
+    ? items.map((item) => masterRow(item, label, rename, remove))
+    : [el("li", { class: "empty" }, `${label}はまだありません。上の欄から追加してください。`)]));
+}
+
+function bindAddForm(formId, create) {
+  const form = document.getElementById(formId);
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = form.elements.namedItem("name");
+    const name = input.value.trim();
+    if (!name) return;
+    run(async () => {
+      await create(name);
+      input.value = "";
+    });
+  });
 }
 
 function tagRow(tag) {
@@ -96,10 +97,9 @@ function tagRow(tag) {
 
 async function load() {
   try {
-    const [areas, tags] = await Promise.all([api.listAreas(), api.listTags()]);
-    areaList.replaceChildren(...(areas.length
-      ? areas.map(areaCard)
-      : [el("p", { class: "empty" }, "領域はまだありません。上の欄から追加してください。")]));
+    const [areas, related, tags] = await Promise.all([api.listAreas(), api.listRelated(), api.listTags()]);
+    renderMasters(areaList, areas, "領域", api.renameArea, api.deleteArea);
+    renderMasters(relatedList, related, "関連項目", api.renameRelated, api.deleteRelated);
     tagList.replaceChildren(...(tags.length
       ? tags.map(tagRow)
       : [el("li", { class: "empty" }, "タグはまだありません")]));
@@ -108,16 +108,7 @@ async function load() {
   }
 }
 
-const areaForm = document.getElementById("area-add");
-areaForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const input = areaForm.elements.namedItem("name");
-  const name = input.value.trim();
-  if (!name) return;
-  run(async () => {
-    await api.createArea(name);
-    input.value = "";
-  });
-});
+bindAddForm("area-add", api.createArea);
+bindAddForm("related-add", api.createRelated);
 
 load();

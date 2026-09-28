@@ -35,7 +35,9 @@ export const api = {
   updateTask: (id, patch) => request("PATCH", `/api/tasks/${id}`, patch),
   deleteTask: (id) => request("DELETE", `/api/tasks/${id}`),
   listAreas: () => request("GET", "/api/areas"),
-  listIdeas: (search, tag) => request("GET", `/api/ideas${q({ q: search, tag })}`),
+  listRelated: () => request("GET", "/api/related"),
+  listIdeas: (search, tag, archived = false) =>
+    request("GET", `/api/ideas${q({ q: search, tag, archived: archived ? "true" : "" })}`),
   getIdea: (id) => request("GET", `/api/ideas/${id}`),
   createIdea: (idea) => request("POST", "/api/ideas", idea),
   updateIdea: (id, patch) => request("PATCH", `/api/ideas/${id}`, patch),
@@ -54,7 +56,7 @@ export const api = {
   createArea: (name) => request("POST", "/api/areas", { name }),
   renameArea: (id, name) => request("PATCH", `/api/areas/${id}`, { name }),
   deleteArea: (id) => request("DELETE", `/api/areas/${id}`),
-  createRelated: (areaId, name) => request("POST", `/api/areas/${areaId}/related`, { name }),
+  createRelated: (name) => request("POST", "/api/related", { name }),
   renameRelated: (id, name) => request("PATCH", `/api/related/${id}`, { name }),
   deleteRelated: (id) => request("DELETE", `/api/related/${id}`),
 };

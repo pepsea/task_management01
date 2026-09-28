@@ -1,4 +1,4 @@
-import { addDays, dayDiff, formatShort, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek } from "./dates.js";
+import { addDays, dayDiff, formatShort, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek, todayKey } from "./dates.js";
 import { el } from "./ui.js";
 
 // 1 列の単位ごとの設定。count は表示する列数、minColWidth は画面が狭いときの列幅の下限
@@ -9,11 +9,12 @@ const SCALES = {
   month: { count: 12, minColWidth: 56, nominalDays: 30 },
 };
 // style.css の .g-cells の列幅の合計＋右罫線
-const CELLS_WIDTH = 520;
-// ディシジョン名 1 件ぶんのおおよその表示幅（重なり判定用）
+const CELLS_WIDTH = 548;
+// ディシジョン名 1 件ぶんのおおよその表示幅（重なり判定用）と 1 段の高さ
 const DECISION_LABEL_WIDTH = 90;
+const DECISION_LANE_HEIGHT = 16;
 const PRIORITY_LABEL = { high: "高", mid: "中", low: "低" };
-const COLUMNS = ["領域", "関連項目", "タスク名", "開始", "期限", "優先", "完了"];
+const COLUMNS = ["☀", "領域", "関連項目", "タスク名", "開始", "期限", "優先", "完了"];
 
 // 表示期間を列の配列にする。各列は { start: Date, days: その列が占める日数 }
 function buildColumns(scale, anchor) {
@@ -51,7 +52,7 @@ function sortTasks(tasks) {
   );
 }
 
-export function createGantt(root, { onEdit, onToggleDone, onEditDecision }) {
+export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditDecision }) {
   let scale = "day";
   let anchor = startOfDay(new Date());
   let tasks = [];
@@ -118,39 +119,53 @@ export function createGantt(root, { onEdit, onToggleDone, onEditDecision }) {
   }
 
   function decisionRow(layout) {
-    const byDay = new Map();
-    for (const d of decisions) {
-      const index = layout.dayIndex(parseDate(d.date));
-      if (!layout.inRange(index)) continue;
-      if (!byDay.has(index)) byDay.set(index, []);
-      byDay.get(index).push(d);
-    }
-    const track = el("div", { class: "g-track g-decision-track", style: `width:${layout.width}px` },
-      gridLines(layout), markers(layout));
-    // 名前が隣と重なるときは下の段に回す（2 段を交互に使う）
-    const laneEnds = [-Infinity, -Infinity];
-    const entries = [...byDay].sort((x, y) => x[0] - y[0]);
-    for (const [index, items] of entries) {
+    const visible = decisions
+      .map((d) => ({ d, index: layout.dayIndex(parseDate(d.date)) }))
+      .filter(({ index }) => layout.inRange(index))
+      .sort((a, b) => a.index - b.index || (a.d.time ?? "").localeCompare(b.d.time ?? ""));
+    // 1 件ずつ、名前が重ならない一番上の段に置く。同じ日の複数件や近い日付は下の段に縦に並ぶ
+    const laneEnds = [];
+    const placed = visible.map(({ d, index }) => {
       const left = centerOf(index, layout);
-      const lane = left - 7 >= laneEnds[0] ? 0 : left - 7 >= laneEnds[1] ? 1 : 0;
-      laneEnds[lane] = left - 7 + Math.min(items.length * DECISION_LABEL_WIDTH, 2 * DECISION_LABEL_WIDTH);
-      track.append(el("div", {
-        class: "g-decision",
-        style: `left:${left}px;top:${2 + lane * 15}px`,
-      }, items.map((d) => el("button", {
+      let lane = laneEnds.findIndex((end) => left - 7 >= end);
+      if (lane === -1) lane = laneEnds.push(0) - 1;
+      laneEnds[lane] = left - 7 + DECISION_LABEL_WIDTH;
+      return { d, left, lane };
+    });
+    const lanes = Math.max(laneEnds.length, 1);
+    const track = el("div", {
+      class: "g-track g-decision-track",
+      style: `width:${layout.width}px;height:${lanes * DECISION_LANE_HEIGHT + 6}px`,
+    }, gridLines(layout), markers(layout));
+    for (const { d, left, lane } of placed) {
+      track.append(el("button", {
         type: "button",
+        class: "g-decision",
+        style: `left:${left}px;top:${3 + lane * DECISION_LANE_HEIGHT}px`,
         title: `${d.date}${d.time ? ` ${d.time}` : ""}\n${d.title}`,
         onclick: () => onEditDecision(d),
-      }, `◆ ${d.title}`))));
+      }, `◆ ${d.title}`));
     }
     return el("div", { class: "g-row g-decisions" },
       el("div", { class: "g-cells" }, el("div", { class: "g-decision-caption" }, "ディシジョン")),
       track);
   }
 
+
   function taskRow(task, layout, now) {
     const due = parseDateTime(task.due_at);
     const overdue = !task.done && due < now;
+    const isToday = task.today_on === todayKey();
+    const todayButton = el("button", {
+      type: "button",
+      class: `today-toggle${isToday ? " on" : ""}`,
+      title: isToday ? "今日のタスクから外す" : "今日のタスクにする",
+      "aria-pressed": isToday ? "true" : "false",
+      onclick: (e) => {
+        e.stopPropagation();
+        onToggleToday(task, !isToday);
+      },
+    }, "☀");
     const checkbox = el("input", {
       type: "checkbox",
       checked: task.done,
@@ -175,10 +190,11 @@ export function createGantt(root, { onEdit, onToggleDone, onEditDecision }) {
     }
 
     return el("div", {
-      class: `g-row${task.done ? " done" : ""}${overdue ? " overdue" : ""}`,
+      class: `g-row${task.done ? " done" : ""}${overdue ? " overdue" : ""}${isToday ? " today-task" : ""}`,
       onclick: () => onEdit(task),
     },
       el("div", { class: "g-cells" },
+        el("div", { class: "g-today-cell" }, todayButton),
         el("div", { title: task.area }, task.area),
         el("div", { title: task.related }, task.related),
         el("div", { class: "g-title", title: task.memo ? `${task.title}\n\n${task.memo}` : task.title },

@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import { formatStamp } from "./dates.js";
 import { el, tagChip, toast } from "./ui.js";
 
 const AUTOSAVE_MS = 800;
@@ -114,6 +115,8 @@ export function initIdeas({ onMakeTask }) {
       selectedId = idea.id;
       titleInput.value = idea.title;
       bodyInput.value = idea.body;
+      document.getElementById("idea-stamp").textContent =
+        `思いつき ${formatStamp(idea.created_at)} ・ 更新 ${formatStamp(idea.updated_at)}`;
       selectedTags = idea.tags;
       renderSelectedTags();
       tagInput.value = "";
@@ -167,6 +170,20 @@ export function initIdeas({ onMakeTask }) {
     saveTimer = null;
     try {
       await api.deleteIdea(selectedId);
+      selectedId = null;
+      editor.hidden = true;
+      await refresh();
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  document.getElementById("idea-archive").addEventListener("click", async () => {
+    if (selectedId === null) return;
+    await flushSave();
+    try {
+      await api.updateIdea(selectedId, { archived: true });
+      toast(`「${titleInput.value}」をアーカイブしました`);
       selectedId = null;
       editor.hidden = true;
       await refresh();

@@ -22,6 +22,7 @@
         <button id="today" type="button">今日</button>
         <button id="next" type="button" aria-label="次へ">▶</button>
         <span id="range-label" class="range-label"></span>
+        <button id="today-filter" type="button" class="today-filter" aria-pressed="false" title="今日のタスクだけを表示">☀ 今日 <span id="today-count">0</span></button>
         <span class="spacer"></span>
         <button id="add-decision" type="button" class="decision-btn">＋ ディシジョン</button>
         <button id="add-task" type="button" class="primary">＋ タスク</button>
@@ -34,6 +35,8 @@
       <section class="panel ideas">
         <header class="panel-head">
           <h2>アイディア保管庫</h2>
+          <span class="spacer"></span>
+          <a href="archive.html" class="settings-link" title="アーカイブしたアイディアを見る">🗄 アーカイブ</a>
           <button id="add-idea" type="button" aria-label="アイディアを追加">＋</button>
         </header>
         <div class="idea-filters">
@@ -47,6 +50,7 @@
           <div class="editor-head">
             <input id="idea-title" aria-label="タイトル">
             <button id="idea-to-task" type="button" class="primary">タスク化</button>
+            <button id="idea-archive" type="button" title="保管庫から外してアーカイブ画面に移す">アーカイブ</button>
             <button id="idea-delete" type="button" class="danger">削除</button>
           </div>
           <div class="tag-editor">
@@ -54,7 +58,11 @@
             <input id="idea-tag-input" list="tag-options" placeholder="＋タグ（Enter）" aria-label="タグを追加">
           </div>
           <textarea id="idea-body" placeholder="アイディアを書く…"></textarea>
-          <span id="idea-status" class="status"></span>
+          <div class="idea-meta">
+            <span id="idea-stamp" class="stamp"></span>
+            <span class="spacer"></span>
+            <span id="idea-status" class="status"></span>
+          </div>
         </div>
       </section>
 

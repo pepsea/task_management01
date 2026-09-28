@@ -41,10 +41,10 @@ def delete_memo(memo_id: int, conn: sqlite3.Connection = Depends(get_conn)):
 @router.post("/brainstorm/{memo_id}/promote", response_model=IdeaOut, status_code=201)
 def promote_memo(memo_id: int, conn: sqlite3.Connection = Depends(get_conn)):
     memo = _get_memo(conn, memo_id)
-    now = now_iso()
+    # アイディアの作成日時は、思いついた（メモした）日時を引き継ぐ
     cur = conn.execute(
         "INSERT INTO ideas (title, body, created_at, updated_at) VALUES (?, '', ?, ?)",
-        (memo["text"], now, now),
+        (memo["text"], memo["created_at"], now_iso()),
     )
     conn.execute("DELETE FROM brainstorm WHERE id = ?", (memo_id,))
     conn.commit()

@@ -14,23 +14,25 @@
 
   <main class="settings">
     <section class="settings-card">
-      <h2>領域と関連項目</h2>
-      <p class="settings-note">
-        タスクの「領域」「関連項目」はここで登録したものから選びます。
-        名前を変えると、既存のタスクにも反映されます。タスクで使われているものは削除できません。
-      </p>
+      <h2>領域</h2>
       <form id="area-add" class="add-row">
         <input name="name" placeholder="新しい領域（例：仕事）" aria-label="新しい領域" required>
-        <button type="submit" class="primary">領域を追加</button>
+        <button type="submit" class="primary">追加</button>
       </form>
-      <div id="area-list" class="area-list"></div>
+      <ul id="area-list" class="master-list"></ul>
+    </section>
+
+    <section class="settings-card">
+      <h2>関連項目</h2>
+      <form id="related-add" class="add-row">
+        <input name="name" placeholder="新しい関連項目（例：PJ-A）" aria-label="新しい関連項目" required>
+        <button type="submit" class="primary">追加</button>
+      </form>
+      <ul id="related-list" class="master-list"></ul>
     </section>
 
     <section class="settings-card">
       <h2>アイディアのタグ</h2>
-      <p class="settings-note">
-        タグはアイディアの編集欄で入力すると自動で作られます。ここでは色・名前の変更と削除ができます。
-      </p>
       <ul id="tag-list" class="tag-list"></ul>
     </section>
   </main>

@@ -39,3 +39,15 @@ def test_promote_creates_idea_and_removes_memo(client):
 def test_missing_memo_is_404(client):
     assert client.delete("/api/brainstorm/999").status_code == 404
     assert client.post("/api/brainstorm/999/promote").status_code == 404
+
+
+def test_memo_records_created_at(client):
+    a = add(client, "メモ")
+    assert a["created_at"][:2] == "20"
+    assert "T" in a["created_at"]
+
+
+def test_promote_keeps_original_thought_time(client):
+    a = add(client, "新サービス案")
+    idea = client.post(f"/api/brainstorm/{a['id']}/promote").json()
+    assert idea["created_at"] == a["created_at"]
