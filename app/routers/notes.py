@@ -1,4 +1,3 @@
-import re
 import sqlite3
 from datetime import date
 from typing import Literal
@@ -12,28 +11,6 @@ from app.ordering import reorder, top_position
 from app.routers.tags import set_item_tags, tags_by_item
 
 router = APIRouter(prefix="/api", tags=["notes"])
-
-TITLE_MAX = 100
-
-
-def derive_title(body: str) -> str:
-    """本文の最初の意味のある行から、Markdown の記号を除いてタイトルを作る。"""
-    in_code = False
-    for line in body.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("```"):
-            in_code = not in_code
-            continue
-        if in_code or not stripped:
-            continue
-        text = re.sub(r"^#{1,6}\s*", "", stripped)
-        text = re.sub(r"^>\s*", "", text)
-        text = re.sub(r"^([-*+]|\d+\.)\s+(\[[ xX]\]\s+)?", "", text)
-        text = re.sub(r"[*_~`]", "", text).strip()
-        if text:
-            return text[:TITLE_MAX]
-    return "無題"
-
 
 def _like_pattern(q: str) -> str:
     escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
@@ -97,7 +74,7 @@ def create_note(body: NoteCreate, conn: sqlite3.Connection = Depends(get_conn)):
     cur = conn.execute(
         """INSERT INTO notes (title, body, position, note_date, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?)""",
-        (derive_title(body.body), body.body, top_position(conn, "notes"),
+        (body.title, body.body, top_position(conn, "notes"),
          body.note_date or date.today().isoformat(), now, now),
     )
     set_item_tags(conn, "note", cur.lastrowid, body.tags)
@@ -121,7 +98,9 @@ def update_note(note_id: int, body: NoteUpdate, conn: sqlite3.Connection = Depen
     fetch_note(conn, note_id)
     changes = body.model_dump(exclude_unset=True)
     if any(value is None for value in changes.values()):
-        raise HTTPException(status_code=422, detail="body・tags・pinned・archived・note_date は null にできません")
+        raise HTTPException(
+            status_code=422, detail="title・body・tags・pinned・archived・note_date は null にできません"
+        )
     # ピン留め・アーカイブは内容の更新ではないので updated_at は変えない
     if "pinned" in changes:
         conn.execute("UPDATE notes SET pinned = ? WHERE id = ?", (int(changes["pinned"]), note_id))
@@ -132,13 +111,12 @@ def update_note(note_id: int, body: NoteUpdate, conn: sqlite3.Connection = Depen
         set_item_tags(conn, "note", note_id, changes["tags"])
     if "note_date" in changes:
         conn.execute("UPDATE notes SET note_date = ? WHERE id = ?", (changes["note_date"], note_id))
-    if "body" in changes or "tags" in changes or "note_date" in changes:
+    if "title" in changes:
+        conn.execute("UPDATE notes SET title = ? WHERE id = ?", (changes["title"], note_id))
+    if changes.keys() & {"title", "body", "tags", "note_date"}:
         conn.execute("UPDATE notes SET updated_at = ? WHERE id = ?", (now_iso(), note_id))
     if "body" in changes:
-        conn.execute(
-            "UPDATE notes SET body = ?, title = ? WHERE id = ?",
-            (changes["body"], derive_title(changes["body"]), note_id),
-        )
+        conn.execute("UPDATE notes SET body = ? WHERE id = ?", (changes["body"], note_id))
     conn.commit()
     return fetch_note(conn, note_id)
 

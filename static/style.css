@@ -342,3 +342,13 @@ dialog::backdrop { background: rgba(0, 0, 0, .25); }
 .note-date { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); }
 .note-date input { font-size: 13px; padding: 2px 6px; }
 .note-list-date { flex: none; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* NOTES のタイトル欄と並び順の切り替え */
+.note-title {
+  font-size: 22px; font-weight: 700; padding: 6px 8px; border: 1px solid transparent; border-radius: 6px;
+}
+.note-title:hover { border-color: var(--line); }
+.note-title:focus { outline: none; border-color: var(--accent); }
+.notes-list-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.notes-list-head .seg button { font-size: 12px; padding: 3px 10px; }
+.idea-title.untitled { color: var(--muted); }

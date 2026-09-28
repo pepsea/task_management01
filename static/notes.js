@@ -1,6 +1,7 @@
 import { api } from "./api.js";
 import { createBlockEditor } from "./blockEditor.js";
 import { formatDateLabel, formatStamp } from "./dates.js";
+import { createSortable } from "./sortable.js";
 import { el, tagChip, toast } from "./ui.js";
 
 const AUTOSAVE_MS = 800;
@@ -16,6 +17,19 @@ const stamp = document.getElementById("note-stamp");
 const tagChips = document.getElementById("note-tags");
 const tagInput = document.getElementById("note-tag-input");
 const dateInput = document.getElementById("note-date");
+const titleInput = document.getElementById("note-title");
+const sortButtons = document.querySelectorAll("[data-sort]");
+const SORT_STORAGE_KEY = "notes.sort";
+
+const titleOf = (note) => note.title || "無題";
+
+// 並び順（date: 日付順 / manual: ドラッグで決めた順）。ブラウザに覚えておく
+let sortMode = "date";
+try {
+  sortMode = localStorage.getItem(SORT_STORAGE_KEY) === "manual" ? "manual" : "date";
+} catch {
+  // 保存できない環境では日付順
+}
 
 let notes = [];
 let selectedId = null;
@@ -25,6 +39,24 @@ let searchTimer = null;
 
 const editor = createBlockEditor(document.getElementById("note-body"), {
   onInput: () => scheduleSave(),
+});
+
+const sortable = createSortable({
+  list,
+  getItems: () => notes,
+  setItems: (items) => {
+    notes = items;
+    renderList();
+  },
+  groupOf: (note) => note.pinned,
+  onReorder: async (ids) => {
+    try {
+      await api.reorderNotes(ids);
+    } catch (err) {
+      toast(err.message);
+    }
+    await refresh();
+  },
 });
 
 function setEditorVisible(visible) {
@@ -41,8 +73,10 @@ function renderList() {
   list.replaceChildren(...notes.map((note) =>
     el("li", {
       class: `${note.id === selectedId ? "selected" : ""}${note.pinned ? " prioritized" : ""}`,
+      ...(sortMode === "manual" ? sortable(note) : {}),
       onclick: () => (note.id === selectedId ? close() : select(note.id)),
     },
+      sortMode === "manual" ? el("span", { class: "drag-handle", title: "ドラッグで並べ替え", "aria-hidden": "true" }, "⋮⋮") : null,
       el("button", {
         type: "button",
         class: `star${note.pinned ? " on" : ""}`,
@@ -53,7 +87,7 @@ function renderList() {
           togglePin(note);
         },
       }, note.pinned ? "★" : "☆"),
-      el("span", { class: "idea-title", title: note.title }, note.title),
+      el("span", { class: `idea-title${note.title ? "" : " untitled"}`, title: titleOf(note) }, titleOf(note)),
       note.tags.length ? el("span", { class: "tag-chips" }, note.tags.map((t) => tagChip(t))) : null,
       el("span", { class: "note-list-date", title: note.note_date }, formatDateLabel(note.note_date)))));
 }
@@ -72,7 +106,8 @@ async function loadTags() {
 async function refresh() {
   try {
     await loadTags();
-    notes = await api.listNotes(search.value.trim(), tagFilter.value);
+    for (const button of sortButtons) button.classList.toggle("active", button.dataset.sort === sortMode);
+    notes = await api.listNotes(search.value.trim(), tagFilter.value, false, sortMode);
     renderList();
   } catch (err) {
     toast(err.message);
@@ -87,7 +122,7 @@ async function save() {
   saveTimer = null;
   if (selectedId === null) return;
   try {
-    const updated = await api.updateNote(selectedId, { body: editor.value() });
+    const updated = await api.updateNote(selectedId, { title: titleInput.value.trim(), body: editor.value() });
     status.textContent = "保存済み";
     showMeta(updated);
     const index = notes.findIndex((n) => n.id === updated.id);
@@ -143,9 +178,12 @@ async function select(id, { startWriting = false } = {}) {
     status.textContent = "";
     showMeta(note);
     dateInput.value = note.note_date;
+    titleInput.value = note.title;
     setEditorVisible(true);
     editor.setValue(note.body);
-    if (startWriting) editor.startWriting();
+    if (startWriting) {
+      titleInput.focus();
+    }
     renderList();
   } catch (err) {
     toast(err.message);
@@ -185,7 +223,7 @@ document.getElementById("note-archive").addEventListener("click", async () => {
   await flushSave();
   try {
     const note = await api.updateNote(selectedId, { archived: true });
-    toast(`「${note.title}」をアーカイブしました`);
+    toast(`「${titleOf(note)}」をアーカイブしました`);
     selectedId = null;
     setEditorVisible(false);
     await refresh();
@@ -196,7 +234,7 @@ document.getElementById("note-archive").addEventListener("click", async () => {
 
 document.getElementById("note-delete").addEventListener("click", async () => {
   const note = notes.find((n) => n.id === selectedId);
-  if (!note || !confirm(`「${note.title}」を削除しますか？`)) return;
+  if (!note || !confirm(`「${titleOf(note)}」を削除しますか？`)) return;
   clearTimeout(saveTimer);
   saveTimer = null;
   try {
@@ -210,6 +248,27 @@ document.getElementById("note-delete").addEventListener("click", async () => {
 });
 
 document.getElementById("note-close").addEventListener("click", close);
+
+titleInput.addEventListener("input", scheduleSave);
+titleInput.addEventListener("keydown", (e) => {
+  // タイトルで Enter を押したら本文を書き始める
+  if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) {
+    e.preventDefault();
+    editor.startWriting();
+  }
+});
+
+for (const button of sortButtons) {
+  button.addEventListener("click", () => {
+    sortMode = button.dataset.sort;
+    try {
+      localStorage.setItem(SORT_STORAGE_KEY, sortMode);
+    } catch {
+      // 保存できない環境ではその場だけ
+    }
+    refresh();
+  });
+}
 
 dateInput.addEventListener("change", async () => {
   if (selectedId === null) return;
@@ -252,7 +311,7 @@ window.addEventListener("pagehide", () => {
   fetch(`/api/notes/${selectedId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ body: editor.value() }),
+    body: JSON.stringify({ title: titleInput.value.trim(), body: editor.value() }),
     keepalive: true,
   });
 });

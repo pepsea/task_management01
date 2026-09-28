@@ -43,8 +43,9 @@ export const api = {
   updateIdea: (id, patch) => request("PATCH", `/api/ideas/${id}`, patch),
   deleteIdea: (id) => request("DELETE", `/api/ideas/${id}`),
   reorderIdeas: (ids) => request("POST", "/api/ideas/reorder", { ids }),
-  listNotes: (search, tag, archived = false) =>
-    request("GET", `/api/notes${q({ q: search, tag, archived: archived ? "true" : "" })}`),
+  listNotes: (search, tag, archived = false, sort = "") =>
+    request("GET", `/api/notes${q({ q: search, tag, archived: archived ? "true" : "", sort })}`),
+  reorderNotes: (ids) => request("POST", "/api/notes/reorder", { ids }),
   getNote: (id) => request("GET", `/api/notes/${id}`),
   createNote: (note) => request("POST", "/api/notes", note),
   updateNote: (id, patch) => request("PATCH", `/api/notes/${id}`, patch),

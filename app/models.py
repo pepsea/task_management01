@@ -257,7 +257,12 @@ class ReorderIn(BaseModel):
     ids: Annotated[list[int], Field(min_length=1)]
 
 
+NoteTitle = Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]
+
+
 class NoteCreate(BaseModel):
+    # タイトルは本文とは別に入力する（空でもよい。画面では「無題」と表示）
+    title: NoteTitle = ""
     body: Annotated[str, StringConstraints(max_length=200000)] = ""
     tags: list[TagName] = []
     # メモの日付。省略すると今日
@@ -270,6 +275,7 @@ class NoteCreate(BaseModel):
 
 
 class NoteUpdate(BaseModel):
+    title: Optional[NoteTitle] = None
     body: Optional[Annotated[str, StringConstraints(max_length=200000)]] = None
     tags: Optional[list[TagName]] = None
     pinned: Optional[bool] = None

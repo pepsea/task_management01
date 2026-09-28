@@ -69,7 +69,7 @@ function noteCard(note, html) {
   }
   return el("article", { class: "archive-card" },
     el("header", { class: "archive-card-head" },
-      el("h2", {}, note.title),
+      el("h2", {}, note.title || "無題"),
       el("span", { class: "note-list-date" }, `📅 ${formatDateLabel(note.note_date)}`)),
     note.tags.length ? el("div", { class: "tag-chips" }, note.tags.map((t) => tagChip(t))) : null,
     body,
@@ -77,8 +77,8 @@ function noteCard(note, html) {
       el("span", { class: "archive-dates" },
         `作成 ${formatStamp(note.created_at)} ・ 更新 ${formatStamp(note.updated_at)} ・ アーカイブ ${formatStamp(note.archived_at)}`),
       el("span", { class: "spacer" }),
-      restoreButton("メモ帳に戻す", () => api.updateNote(note.id, { archived: false }), `「${note.title}」をメモ帳に戻しました`),
-      deleteButton(note.title, () => api.deleteNote(note.id))));
+      restoreButton("メモ帳に戻す", () => api.updateNote(note.id, { archived: false }), `「${note.title || "無題"}」をメモ帳に戻しました`),
+      deleteButton(note.title || "無題", () => api.deleteNote(note.id))));
 }
 
 async function loadTags() {

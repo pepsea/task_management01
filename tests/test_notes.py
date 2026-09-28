@@ -1,8 +1,8 @@
 import pytest
 
 
-def make(client, body="# メモ", tags=None):
-    payload = {"body": body}
+def make(client, title="メモ", body="", tags=None):
+    payload = {"title": title, "body": body}
     if tags is not None:
         payload["tags"] = tags
     r = client.post("/api/notes", json=payload)
@@ -14,48 +14,53 @@ def titles(client, **params):
     return [n["title"] for n in client.get("/api/notes", params=params).json()]
 
 
-@pytest.mark.parametrize("body,title", [
-    ("# 会議メモ\n本文", "会議メモ"),
-    ("\n\n## 見出し2", "見出し2"),
-    ("- [ ] やること", "やること"),
-    ("**太字の**タイトル", "太字のタイトル"),
-    ("> 引用", "引用"),
-    ("```\ncode\n```\n本文", "本文"),
-    ("", "無題"),
-    ("   \n  ", "無題"),
-])
-def test_title_is_derived_from_first_line(client, body, title):
-    assert make(client, body)["title"] == title
+def test_title_is_separate_from_body(client):
+    n = make(client, "会議メモ", "# 本文の見出し")
+    assert n["title"] == "会議メモ"
+    # 本文を変えてもタイトルは変わらない
+    r = client.patch(f"/api/notes/{n['id']}", json={"body": "# 別の見出し"})
+    assert r.json()["title"] == "会議メモ"
+    r = client.patch(f"/api/notes/{n['id']}", json={"title": "  新タイトル  "})
+    assert r.json()["title"] == "新タイトル"
+    assert r.json()["body"] == "# 別の見出し"
 
 
-def test_long_title_is_cut(client):
-    assert len(make(client, "あ" * 300)["title"]) == 100
+def test_title_can_be_empty_or_omitted(client):
+    r = client.post("/api/notes", json={"body": "本文だけ"})
+    assert r.status_code == 201
+    assert r.json()["title"] == ""
+    assert make(client, "   ")["title"] == ""
+
+
+def test_too_long_title_rejected(client):
+    assert client.post("/api/notes", json={"title": "あ" * 101}).status_code == 422
 
 
 def test_create_get_update_delete(client):
-    n = make(client, "# A\n本文", tags=["仕事"])
-    assert n["body"] == "# A\n本文"
+    n = make(client, "A", "本文", tags=["仕事"])
+    assert n["body"] == "本文"
     assert [t["name"] for t in n["tags"]] == ["仕事"]
     assert n["pinned"] is False and n["archived_at"] is None
     assert client.get(f"/api/notes/{n['id']}").json() == n
     r = client.patch(f"/api/notes/{n['id']}", json={"body": "# B"})
-    assert r.json()["title"] == "B"
+    assert r.json()["body"] == "# B"
+    assert r.json()["title"] == "A"
     assert r.json()["tags"] == n["tags"]
     assert client.delete(f"/api/notes/{n['id']}").status_code == 204
     assert client.get(f"/api/notes/{n['id']}").status_code == 404
 
 
 def test_new_note_on_top_and_update_keeps_order(client):
-    a = make(client, "# A")
-    make(client, "# B")
-    client.patch(f"/api/notes/{a['id']}", json={"body": "# A2"})
-    assert titles(client) == ["B", "A2"]
+    a = make(client, "A")
+    make(client, "B")
+    client.patch(f"/api/notes/{a['id']}", json={"body": "本文を更新"})
+    assert titles(client) == ["B", "A"]
 
 
 def test_search_and_tag_filter(client):
-    make(client, "# 旅行\n北海道", tags=["私用"])
-    make(client, "# 会議\n旅行の予算", tags=["仕事"])
-    make(client, "# 読書")
+    make(client, "旅行", "北海道", tags=["私用"])
+    make(client, "会議", "旅行の予算", tags=["仕事"])
+    make(client, "読書")
     assert set(titles(client, q="旅行")) == {"旅行", "会議"}
     assert titles(client, tag="仕事") == ["会議"]
     assert titles(client, q="100%") == []
@@ -63,7 +68,7 @@ def test_search_and_tag_filter(client):
 
 def test_list_is_sorted_by_date_with_pinned_first(client):
     def note(title, day):
-        return client.post("/api/notes", json={"body": f"# {title}", "note_date": day}).json()
+        return client.post("/api/notes", json={"title": title, "note_date": day}).json()
 
     old = note("古い", "2026-09-01")
     note("新しい", "2026-10-10")
@@ -79,8 +84,8 @@ def test_list_is_sorted_by_date_with_pinned_first(client):
 
 
 def test_archive_and_restore(client):
-    a = make(client, "# A")
-    make(client, "# B")
+    a = make(client, "A")
+    make(client, "B")
     r = client.patch(f"/api/notes/{a['id']}", json={"archived": True})
     assert r.json()["archived_at"] is not None
     assert r.json()["updated_at"] == a["updated_at"]
@@ -92,7 +97,7 @@ def test_archive_and_restore(client):
 
 def test_null_fields_rejected(client):
     n = make(client)
-    for field in ["body", "tags", "pinned", "archived"]:
+    for field in ["title", "body", "tags", "pinned", "archived"]:
         assert client.patch(f"/api/notes/{n['id']}", json={field: None}).status_code == 422
 
 
@@ -103,13 +108,13 @@ def test_missing_note_is_404(client):
 
 
 def test_tags_are_shared_with_ideas(client):
-    make(client, "# A", tags=["共通"])
+    make(client, "A", tags=["共通"])
     client.post("/api/ideas", json={"title": "i", "tags": ["共通"]})
     assert [t["name"] for t in client.get("/api/tags").json()] == ["共通"]
 
 
 def test_deleting_tag_removes_it_from_notes(client):
-    n = make(client, "# A", tags=["x", "y"])
+    n = make(client, "A", tags=["x", "y"])
     client.delete(f"/api/tags/{n['tags'][0]['id']}")
     assert [t["name"] for t in client.get(f"/api/notes/{n['id']}").json()["tags"]] == ["y"]
 
@@ -121,7 +126,7 @@ def test_note_date_defaults_to_today(client):
 
 
 def test_note_date_can_be_set_and_changed(client):
-    r = client.post("/api/notes", json={"body": "# A", "note_date": "2026-10-01"})
+    r = client.post("/api/notes", json={"title": "A", "note_date": "2026-10-01"})
     assert r.json()["note_date"] == "2026-10-01"
     r = client.patch(f"/api/notes/{r.json()['id']}", json={"note_date": "2026-12-24"})
     assert r.status_code == 200
@@ -161,7 +166,7 @@ def test_existing_notes_get_date_from_created_at(tmp_path, monkeypatch):
 
 def test_manual_sort_and_reorder(client):
     def note(title, day):
-        return client.post("/api/notes", json={"body": f"# {title}", "note_date": day}).json()["id"]
+        return client.post("/api/notes", json={"title": title, "note_date": day}).json()["id"]
 
     a = note("A", "2026-09-01")
     b = note("B", "2026-10-01")
@@ -178,15 +183,15 @@ def test_manual_sort_and_reorder(client):
 
 
 def test_new_note_goes_top_in_manual_sort(client):
-    a = client.post("/api/notes", json={"body": "# A"}).json()["id"]
-    b = client.post("/api/notes", json={"body": "# B"}).json()["id"]
+    a = client.post("/api/notes", json={"title": "A"}).json()["id"]
+    b = client.post("/api/notes", json={"title": "B"}).json()["id"]
     client.post("/api/notes/reorder", json={"ids": [a, b]})
-    client.post("/api/notes", json={"body": "# C"})
+    client.post("/api/notes", json={"title": "C"})
     assert titles(client, sort="manual") == ["C", "A", "B"]
 
 
 def test_reorder_notes_rejects_bad_ids(client):
-    a = client.post("/api/notes", json={"body": "# A"}).json()["id"]
+    a = client.post("/api/notes", json={"title": "A"}).json()["id"]
     assert client.post("/api/notes/reorder", json={"ids": [a, a]}).status_code == 422
     assert client.post("/api/notes/reorder", json={"ids": [999]}).status_code == 404
     assert client.post("/api/notes/reorder", json={"ids": []}).status_code == 422
