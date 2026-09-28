@@ -28,3 +28,13 @@ export function tagChip(tag, { onRemove } = {}) {
       ? el("button", { type: "button", "aria-label": `タグ「${tag.name}」を外す`, onclick: onRemove }, "×")
       : null);
 }
+
+// href に入れてよい URL か（http/https のみ。javascript: などは不可）
+export function isWebUrl(value) {
+  try {
+    const url = new URL(value);
+    return (url.protocol === "http:" || url.protocol === "https:") && Boolean(url.host) && !/\s/.test(value);
+  } catch {
+    return false;
+  }
+}

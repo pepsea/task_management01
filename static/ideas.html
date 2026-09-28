@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>アイディア保管庫 | Task &amp; Idea Hub</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="settings-page ideas-page">
+  <header class="toolbar">
+    <a href="./" class="settings-link">← ガントに戻る</a>
+    <h1 class="settings-title">💡 アイディア保管庫</h1>
+    <span class="spacer"></span>
+    <a href="archive.html" class="settings-link" title="アーカイブしたアイディアを見る">🗄 アーカイブ</a>
+  </header>
+
+  <main class="ideas-layout">
+    <section class="settings-card ideas-list-card">
+      <form id="idea-add" class="add-row">
+        <input name="title" placeholder="新しいアイディアのタイトル" aria-label="新しいアイディアのタイトル" required>
+        <button type="submit" class="primary">登録</button>
+      </form>
+      <div class="idea-filters">
+        <input id="idea-search" type="search" placeholder="検索（タイトル・本文）">
+        <select id="idea-tag-filter" aria-label="タグで絞り込み">
+          <option value="">すべてのタグ</option>
+        </select>
+      </div>
+      <ul id="idea-list" class="idea-list"></ul>
+    </section>
+
+    <section class="settings-card ideas-editor-card">
+      <p id="idea-placeholder" class="empty idea-placeholder">左の一覧からアイディアを選ぶか、新しく登録してください。</p>
+      <div id="idea-editor" class="idea-editor" hidden>
+        <div class="editor-head">
+          <input id="idea-title" aria-label="タイトル">
+          <button id="idea-close" type="button" title="閉じる（Esc）" aria-label="閉じる">×</button>
+        </div>
+        <div class="editor-actions">
+          <button id="idea-save" type="button" title="今すぐ保存（入力は自動でも保存されます）">保存</button>
+          <button id="idea-to-task" type="button" class="primary" title="ガント画面でタスク作成ダイアログを開く">タスク化</button>
+          <button id="idea-archive" type="button" title="保管庫から外してアーカイブ画面に移す">アーカイブ</button>
+          <span class="spacer"></span>
+          <button id="idea-delete" type="button" class="danger">削除</button>
+        </div>
+        <div class="tag-editor">
+          <span id="idea-tags" class="tag-chips"></span>
+          <input id="idea-tag-input" list="tag-options" placeholder="＋タグ（Enter）" aria-label="タグを追加">
+        </div>
+        <textarea id="idea-body" placeholder="アイディアを書く…"></textarea>
+        <div class="idea-meta">
+          <span id="idea-stamp" class="stamp"></span>
+          <span class="spacer"></span>
+          <span id="idea-status" class="status"></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <datalist id="tag-options"></datalist>
+  <div id="toast-area" class="toast-area" aria-live="polite"></div>
+  <script type="module" src="ideasPage.js"></script>
+</body>
+</html>

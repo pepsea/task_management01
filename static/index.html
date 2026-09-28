@@ -26,56 +26,19 @@
         <span class="spacer"></span>
         <button id="add-decision" type="button" class="decision-btn">＋ ディシジョン</button>
         <button id="add-task" type="button" class="primary">＋ タスク</button>
+        <a href="ideas.html" class="settings-link" title="アイディア保管庫">💡 アイディア</a>
         <a href="settings.html" class="settings-link" title="領域・関連項目・タグの登録">⚙ 登録</a>
       </header>
       <div id="gantt" class="gantt"></div>
     </section>
 
     <aside class="pane pane-side">
-      <section class="panel ideas">
-        <header class="panel-head">
-          <h2>アイディア保管庫</h2>
-          <span class="spacer"></span>
-          <a href="archive.html" class="settings-link" title="アーカイブしたアイディアを見る">🗄 アーカイブ</a>
-        </header>
-        <form id="idea-add" class="add-row">
-          <input name="title" placeholder="新しいアイディアのタイトル" aria-label="新しいアイディアのタイトル" required>
-          <button type="submit" class="primary">登録</button>
-        </form>
-        <div class="idea-filters">
-          <input id="idea-search" type="search" placeholder="検索（タイトル・本文）">
-          <select id="idea-tag-filter" aria-label="タグで絞り込み">
-            <option value="">すべてのタグ</option>
-          </select>
-        </div>
-        <ul id="idea-list" class="idea-list"></ul>
-        <div id="idea-editor" class="idea-editor" hidden>
-          <div class="editor-head">
-            <input id="idea-title" aria-label="タイトル">
-            <button id="idea-close" type="button" title="閉じて一覧に戻る（Esc）" aria-label="閉じる">×</button>
-          </div>
-          <div class="editor-actions">
-            <button id="idea-save" type="button" title="今すぐ保存（入力は自動でも保存されます）">保存</button>
-            <button id="idea-to-task" type="button" class="primary">タスク化</button>
-            <button id="idea-archive" type="button" title="保管庫から外してアーカイブ画面に移す">アーカイブ</button>
-            <span class="spacer"></span>
-            <button id="idea-delete" type="button" class="danger">削除</button>
-          </div>
-          <div class="tag-editor">
-            <span id="idea-tags" class="tag-chips"></span>
-            <input id="idea-tag-input" list="tag-options" placeholder="＋タグ（Enter）" aria-label="タグを追加">
-          </div>
-          <textarea id="idea-body" placeholder="アイディアを書く…"></textarea>
-          <div class="idea-meta">
-            <span id="idea-stamp" class="stamp"></span>
-            <span class="spacer"></span>
-            <span id="idea-status" class="status"></span>
-          </div>
-        </div>
-      </section>
-
       <section class="panel brainstorm">
-        <header class="panel-head"><h2>ブレスト</h2></header>
+        <header class="panel-head">
+          <h2>ブレスト</h2>
+          <span class="spacer"></span>
+          <a href="ideas.html" class="settings-link" title="アイディア保管庫を開く">💡 アイディア保管庫</a>
+        </header>
         <input id="bs-input" placeholder="思いつきを入力して Enter">
         <ul id="bs-list" class="bs-list"></ul>
       </section>
@@ -99,6 +62,11 @@
         </select>
       </label>
       <label>メモ<textarea name="memo" rows="4" placeholder="進め方・連絡先・気づきなど"></textarea></label>
+      <div class="links-field">
+        <span class="field-label">リンク</span>
+        <ul id="task-links" class="link-rows"></ul>
+        <button id="task-link-add" type="button" class="link-add">＋ リンクを追加</button>
+      </div>
       <label class="check"><input name="done" type="checkbox">完了</label>
       <p id="task-form-error" class="form-error"></p>
       <div class="actions">
@@ -126,7 +94,6 @@
     </form>
   </dialog>
 
-  <datalist id="tag-options"></datalist>
   <div id="toast-area" class="toast-area" aria-live="polite"></div>
 
   <script type="module" src="main.js"></script>

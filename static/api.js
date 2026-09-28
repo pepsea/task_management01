@@ -55,6 +55,7 @@ export const api = {
   deleteTag: (id) => request("DELETE", `/api/tags/${id}`),
   createArea: (name) => request("POST", "/api/areas", { name }),
   renameArea: (id, name) => request("PATCH", `/api/areas/${id}`, { name }),
+  updateArea: (id, patch) => request("PATCH", `/api/areas/${id}`, patch),
   deleteArea: (id) => request("DELETE", `/api/areas/${id}`),
   createRelated: (name) => request("POST", "/api/related", { name }),
   renameRelated: (id, name) => request("PATCH", `/api/related/${id}`, { name }),

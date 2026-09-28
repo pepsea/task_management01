@@ -1,5 +1,5 @@
 import { addDays, dayDiff, formatShort, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek, todayKey } from "./dates.js";
-import { el } from "./ui.js";
+import { el, isWebUrl } from "./ui.js";
 
 // 1 列の単位ごとの設定。表示する列数は空き幅に minColWidth の列が何本入るかで決め、
 // minCount〜maxCount に収める（入りきらないときは横スクロール）。
@@ -46,9 +46,24 @@ function columnLabels(scale, column, index, previous) {
   return [index === 0 || d.getMonth() === 0 ? String(d.getFullYear()) : "", `${d.getMonth() + 1}月`];
 }
 
+// リンクがあればタスク名の前に 🔗。クリックで最初のリンクを新しいタブで開く（全リンクはツールチップと編集ダイアログで）
+function linkMark(links) {
+  const usable = (links ?? []).filter((link) => isWebUrl(link.url));
+  if (!usable.length) return null;
+  return el("a", {
+    class: "link-mark",
+    href: usable[0].url,
+    target: "_blank",
+    rel: "noopener noreferrer",
+    title: usable.map((link) => (link.label ? `${link.label}: ${link.url}` : link.url)).join("\n"),
+    onclick: (e) => e.stopPropagation(),
+  }, usable.length > 1 ? `🔗${usable.length}` : "🔗");
+}
+
+// 締切（期限）の早い順。同じ締切は開始の早い順
 function sortTasks(tasks) {
   return [...tasks].sort(
-    (a, b) => a.area.localeCompare(b.area, "ja") || a.start_at.localeCompare(b.start_at) || a.id - b.id,
+    (a, b) => a.due_at.localeCompare(b.due_at) || a.start_at.localeCompare(b.start_at) || a.id - b.id,
   );
 }
 
@@ -57,6 +72,8 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
   let anchor = startOfDay(new Date());
   let tasks = [];
   let decisions = [];
+  // 領域名 → 色（登録画面で自動割り当て・変更）
+  let areaColors = {};
 
   // 表示期間と、日付 → 横位置（px）の換算をまとめたもの。render のたびに作り直す
   function columnCount() {
@@ -201,10 +218,12 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     },
       el("div", { class: "g-cells" },
         el("div", { class: "g-today-cell" }, todayButton),
-        el("div", { title: task.area }, task.area),
+        el("div", { title: task.area },
+          el("span", { class: "area-chip", style: `background:${areaColors[task.area] ?? "#9ca3af"}` }, task.area)),
         el("div", { title: task.related }, task.related),
         el("div", { class: "g-title", title: task.memo ? `${task.title}\n\n${task.memo}` : task.title },
           task.memo ? el("span", { class: "memo-mark", "aria-label": "メモあり" }, "📝") : null,
+          linkMark(task.links),
           task.title),
         el("div", {}, formatShort(task.start_at)),
         el("div", { class: "g-due" }, formatShort(task.due_at)),
@@ -242,6 +261,9 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
 
   return {
     render,
+    setAreaColors(colors) {
+      areaColors = colors;
+    },
     rangeLabel,
     setScale(next) {
       scale = next;

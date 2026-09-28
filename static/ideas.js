@@ -16,6 +16,13 @@ export function initIdeas({ onMakeTask }) {
   const tagChips = document.getElementById("idea-tags");
   const tagInput = document.getElementById("idea-tag-input");
 
+  const placeholder = document.getElementById("idea-placeholder");
+
+  function setEditorVisible(visible) {
+    editor.hidden = !visible;
+    if (placeholder) placeholder.hidden = visible;
+  }
+
   let ideas = [];
   let selectedId = null;
   let saveTimer = null;
@@ -30,14 +37,36 @@ export function initIdeas({ onMakeTask }) {
     }
     list.replaceChildren(...ideas.map((idea) =>
       el("li", {
-        class: idea.id === selectedId ? "selected" : "",
+        class: `${idea.id === selectedId ? "selected" : ""}${idea.prioritized ? " prioritized" : ""}`,
         title: idea.id === selectedId ? "もう一度クリックで閉じる" : "",
         // 選択中のアイディアをもう一度クリックすると閉じる
         onclick: () => (idea.id === selectedId ? close() : select(idea.id)),
       },
-        el("span", { class: "idea-title", title: idea.title }, idea.title),
-        el("span", { class: "tag-chips" }, idea.tags.map((t) => tagChip(t))),
-        idea.task_count > 0 ? el("span", { class: "badge", title: "タスク化済み" }, "✓") : null)));
+        el("button", {
+          type: "button",
+          class: `star${idea.prioritized ? " on" : ""}`,
+          title: idea.prioritized ? "優先を外す" : "優先にする",
+          "aria-pressed": idea.prioritized ? "true" : "false",
+          onclick: (e) => {
+            e.stopPropagation();
+            togglePriority(idea);
+          },
+        }, idea.prioritized ? "★" : "☆"),
+        el("div", { class: "idea-item" },
+          el("div", { class: "idea-item-head" },
+            el("span", { class: "idea-title", title: idea.title }, idea.title),
+            idea.task_count > 0 ? el("span", { class: "badge", title: "タスク化済み" }, "✓") : null),
+          idea.body.trim() ? el("div", { class: "idea-excerpt" }, idea.body.trim()) : null,
+          idea.tags.length ? el("div", { class: "tag-chips" }, idea.tags.map((t) => tagChip(t))) : null))));
+  }
+
+  async function togglePriority(idea) {
+    try {
+      await api.updateIdea(idea.id, { prioritized: !idea.prioritized });
+      await refresh();
+    } catch (err) {
+      toast(err.message);
+    }
   }
 
   async function loadTags() {
@@ -126,7 +155,7 @@ export function initIdeas({ onMakeTask }) {
       renderSelectedTags();
       tagInput.value = "";
       status.textContent = "";
-      editor.hidden = false;
+      setEditorVisible(true);
       renderList();
     } catch (err) {
       toast(err.message);
@@ -137,7 +166,7 @@ export function initIdeas({ onMakeTask }) {
   async function close() {
     await flushSave();
     selectedId = null;
-    editor.hidden = true;
+    setEditorVisible(false);
     renderList();
   }
 
@@ -204,7 +233,7 @@ export function initIdeas({ onMakeTask }) {
     try {
       await api.deleteIdea(selectedId);
       selectedId = null;
-      editor.hidden = true;
+      setEditorVisible(false);
       await refresh();
     } catch (err) {
       toast(err.message);
@@ -218,7 +247,7 @@ export function initIdeas({ onMakeTask }) {
       await api.updateIdea(selectedId, { archived: true });
       toast(`「${titleInput.value}」をアーカイブしました`);
       selectedId = null;
-      editor.hidden = true;
+      setEditorVisible(false);
       await refresh();
     } catch (err) {
       toast(err.message);

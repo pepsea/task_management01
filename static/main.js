@@ -2,7 +2,6 @@ import { api } from "./api.js";
 import { initBrainstorm } from "./brainstorm.js";
 import { initDecisionForm } from "./decisionForm.js";
 import { createGantt } from "./gantt.js";
-import { initIdeas } from "./ideas.js";
 import { initTaskForm } from "./taskForm.js";
 import { todayKey } from "./dates.js";
 import { el, toast } from "./ui.js";
@@ -37,19 +36,28 @@ const gantt = createGantt(document.getElementById("gantt"), {
 
 const taskForm = initTaskForm({
   onSaved: async () => {
-    await Promise.all([loadTasks(), ideas.refresh()]);
+    await loadTasks();
   },
 });
 
 const decisionForm = initDecisionForm({ onSaved: () => loadDecisions() });
 
-const ideas = initIdeas({
-  onMakeTask: (idea) => taskForm.open({ defaults: { title: idea.title, idea_id: idea.id } }),
+initBrainstorm({
+  onPromoted: (idea) => toast(`「${idea.title}」をアイディア保管庫に移しました`),
 });
 
-initBrainstorm({
-  onPromoted: (idea) => ideas.reveal(idea.id),
-});
+// アイディア保管庫の「タスク化」から ?idea=ID 付きで開かれたら、そのアイディアからタスクを作る
+async function openTaskFromIdea() {
+  const ideaId = new URLSearchParams(location.search).get("idea");
+  if (!ideaId) return;
+  history.replaceState(null, "", location.pathname);
+  try {
+    const idea = await api.getIdea(Number(ideaId));
+    taskForm.open({ defaults: { title: idea.title, idea_id: idea.id } });
+  } catch (err) {
+    toast(err.message);
+  }
+}
 
 function renderGantt() {
   const today = todayKey();
@@ -77,6 +85,7 @@ async function loadTasks() {
     areaFilter.value = areaNames.includes(selected) ? selected : "";
     if (areaFilter.value !== selected) tasks = await api.listTasks("");
     taskForm.setOptions({ areas, related });
+    gantt.setAreaColors(Object.fromEntries(areas.map((a) => [a.name, a.color])));
     renderGantt();
   } catch (err) {
     toast(err.message);
@@ -114,5 +123,5 @@ document.getElementById("today").addEventListener("click", () => { gantt.goToday
 document.getElementById("add-task").addEventListener("click", () => taskForm.open());
 document.getElementById("add-decision").addEventListener("click", () => decisionForm.open());
 
-loadTasks();
+loadTasks().then(openTaskFromIdea);
 loadDecisions();

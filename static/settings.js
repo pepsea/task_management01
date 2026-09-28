@@ -1,8 +1,8 @@
 import { api } from "./api.js";
 import { el, tagChip, toast } from "./ui.js";
 
-// app/routers/tags.py の TAG_COLORS と同じ並び
-const TAG_COLORS = ["#2563eb", "#16a34a", "#dc2626", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#4b5563"];
+// app/colors.py の PALETTE と同じ並び
+const PALETTE = ["#2563eb", "#16a34a", "#dc2626", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#4b5563"];
 
 const areaList = document.getElementById("area-list");
 const relatedList = document.getElementById("related-list");
@@ -45,9 +45,21 @@ async function run(action) {
 }
 
 // 領域・関連項目の 1 行。名前はその場で変更でき、× で削除する
+function swatches(current, onPick) {
+  return el("span", { class: "swatches" }, PALETTE.map((color) => el("button", {
+    type: "button",
+    class: `swatch${color === current ? " active" : ""}`,
+    style: `background:${color}`,
+    "aria-label": `色 ${color}`,
+    onclick: () => run(() => onPick(color)),
+  })));
+}
+
 function masterRow(item, label, rename, remove) {
   return el("li", {},
+    item.color ? el("span", { class: "color-dot", style: `background:${item.color}` }) : null,
     nameInput(item.name, `${label}名`, (name) => rename(item.id, name)),
+    item.color ? swatches(item.color, (color) => api.updateArea(item.id, { color })) : null,
     el("button", {
       type: "button",
       class: "danger",
@@ -77,17 +89,10 @@ function bindAddForm(formId, create) {
 }
 
 function tagRow(tag) {
-  const swatches = TAG_COLORS.map((color) => el("button", {
-    type: "button",
-    class: `swatch${color === tag.color ? " active" : ""}`,
-    style: `background:${color}`,
-    "aria-label": `色 ${color}`,
-    onclick: () => run(() => api.updateTag(tag.id, { color })),
-  }));
   return el("li", {},
     tagChip(tag),
     nameInput(tag.name, "タグ名", (name) => api.updateTag(tag.id, { name })),
-    el("span", { class: "swatches" }, swatches),
+    swatches(tag.color, (color) => api.updateTag(tag.id, { color })),
     el("button", {
       type: "button",
       class: "danger",

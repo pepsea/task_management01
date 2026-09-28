@@ -32,7 +32,7 @@ h2 { font-size: 14px; margin: 0; }
 .spacer { flex: 1; }
 [hidden] { display: none !important; }
 
-.app { display: grid; grid-template-columns: minmax(0, 5fr) minmax(300px, 2fr); height: 100vh; }
+.app { display: grid; grid-template-columns: minmax(0, 3fr) minmax(260px, 1fr); height: 100vh; }
 .pane { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 .pane-gantt { border-right: 1px solid var(--line); }
 
@@ -87,6 +87,22 @@ h2 { font-size: 14px; margin: 0; }
 .g-row.today-task .g-title { font-weight: 700; }
 .g-row.today-task .g-bar { box-shadow: 0 0 0 2px var(--today-line); }
 .today-filter.on { background: var(--today-bg); border-color: var(--today-line); font-weight: 600; }
+.link-mark { margin-right: 3px; font-size: 12px; text-decoration: none; }
+.link-mark:hover { opacity: .7; }
+.links-field { display: flex; flex-direction: column; gap: 4px; }
+.field-label { font-size: 13px; color: var(--muted); }
+.link-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.link-rows li { display: flex; gap: 4px; align-items: center; }
+.link-rows .link-url { flex: 3; min-width: 0; font-size: 13px; }
+.link-rows .link-label { flex: 2; min-width: 0; font-size: 13px; }
+.link-rows .link-open { font-size: 12px; white-space: nowrap; color: var(--accent); }
+.link-rows .link-open.disabled { color: var(--line); pointer-events: none; }
+.link-rows button { padding: 2px 8px; }
+.link-add { align-self: flex-start; font-size: 12px; }
+.area-chip {
+  display: inline-block; max-width: 100%; padding: 1px 7px; border-radius: 999px; color: #fff;
+  font-size: 12px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
+}
 .memo-mark { margin-right: 3px; font-size: 13px; }
 .g-bar { position: absolute; top: 9px; height: 20px; border-radius: 5px; }
 .g-bar.high { background: var(--high); }
@@ -157,7 +173,7 @@ h2 { font-size: 14px; margin: 0; }
 .bs-list button { padding: 2px 6px; font-size: 12px; }
 
 /* ダイアログ */
-dialog { border: 1px solid var(--line); border-radius: 10px; padding: 18px; width: 380px; }
+dialog { border: 1px solid var(--line); border-radius: 10px; padding: 18px; width: 460px; max-height: 92vh; }
 dialog::backdrop { background: rgba(0, 0, 0, .25); }
 #task-form, #decision-form { display: flex; flex-direction: column; gap: 10px; }
 #task-form label, #decision-form label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--muted); }
@@ -176,8 +192,8 @@ dialog::backdrop { background: rgba(0, 0, 0, .25); }
 .settings-page .toolbar { background: var(--bg); }
 .settings-title { font-size: 16px; margin: 0 0 0 8px; }
 .settings {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;
-  padding: 16px; max-width: 1200px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px;
+  padding: 16px; max-width: 1500px; margin: 0 auto;
 }
 .settings-card {
   background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 16px;
@@ -187,13 +203,14 @@ dialog::backdrop { background: rgba(0, 0, 0, .25); }
 .add-row input { flex: 1; min-width: 0; }
 .add-row.small input, .add-row.small button { font-size: 12px; }
 .master-list, .tag-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.master-list li, .tag-list li { display: flex; align-items: center; gap: 6px; }
-.master-list input { flex: 1; font-size: 13px; padding: 3px 6px; }
+.master-list li, .tag-list li { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.color-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; }
+.master-list input { flex: 1; min-width: 100px; font-size: 13px; padding: 3px 6px; }
 .tag-list input { width: 140px; font-size: 13px; padding: 3px 6px; }
 .tag-list .tag { min-width: 60px; justify-content: center; }
 .master-list li.empty, .tag-list li.empty { color: var(--muted); font-size: 13px; }
-.swatches { display: inline-flex; gap: 3px; flex: 1; }
-.swatch { width: 18px; height: 18px; padding: 0; border-radius: 50%; border: 2px solid transparent; }
+.swatches { display: inline-flex; flex-wrap: wrap; gap: 3px; }
+.swatch { width: 16px; height: 16px; padding: 0; border-radius: 50%; border: 2px solid transparent; }
 .swatch:hover { opacity: .8; }
 .swatch.active { border-color: var(--text); }
 
@@ -214,3 +231,32 @@ dialog::backdrop { background: rgba(0, 0, 0, .25); }
 .archive-card-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 8px; }
 .archive-dates { font-size: 11px; color: var(--muted); }
 .archive-empty { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--muted); }
+
+/* アイディア保管庫ページ */
+.ideas-page { height: 100vh; display: flex; flex-direction: column; }
+.ideas-layout {
+  flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr); gap: 16px;
+  padding: 16px; max-width: 1400px; width: 100%; margin: 0 auto;
+}
+.ideas-layout .settings-card { align-self: stretch; min-height: 0; }
+.ideas-page .idea-list { max-height: none; flex: 1; }
+.ideas-page .idea-list li { padding: 8px 10px; }
+.ideas-page .idea-editor { height: 100%; }
+.ideas-page .idea-editor textarea { font-size: 15px; }
+.ideas-page .editor-head input { font-size: 16px; padding: 6px 10px; }
+.idea-placeholder { margin: auto; color: var(--muted); }
+
+/* アイディア一覧（タイトル・内容・タグ・優先） */
+.idea-list li { align-items: flex-start; }
+.idea-item { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.idea-item-head { display: flex; gap: 6px; align-items: baseline; }
+.idea-item-head .idea-title { font-weight: 600; }
+.idea-excerpt {
+  font-size: 12px; color: var(--muted); line-height: 1.5; white-space: pre-line;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.star { border: none; background: none; padding: 0 2px; font-size: 16px; line-height: 20px; color: #c4c8cf; }
+.star:hover { background: none; color: var(--today-line); }
+.star.on { color: var(--today-line); }
+.idea-list li.prioritized { background: var(--today-bg); box-shadow: inset 4px 0 0 var(--today-line); }
+.idea-list li.prioritized.selected { background: #fde9a8; }

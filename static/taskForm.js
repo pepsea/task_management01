@@ -1,6 +1,6 @@
 import { api } from "./api.js";
 import { addDays, toInputValue } from "./dates.js";
-import { el } from "./ui.js";
+import { el, isWebUrl } from "./ui.js";
 
 function defaultTimes() {
   const start = new Date();
@@ -21,6 +21,40 @@ export function initTaskForm({ onSaved }) {
 
   let editing = null;
   let ideaId = null;
+  const linkList = document.getElementById("task-links");
+
+  // リンク入力の 1 行（URL・表示名・開く・削除）
+  function linkRow(link = { url: "", label: "" }) {
+    const url = el("input", { type: "url", class: "link-url", placeholder: "https://…", value: link.url, "aria-label": "URL" });
+    const label = el("input", { class: "link-label", placeholder: "表示名（任意）", value: link.label, "aria-label": "表示名" });
+    const open = el("a", { class: "link-open", target: "_blank", rel: "noopener noreferrer", title: "新しいタブで開く" }, "開く");
+    const syncOpen = () => {
+      const valid = isWebUrl(url.value.trim());
+      if (valid) open.setAttribute("href", url.value.trim());
+      else open.removeAttribute("href");
+      open.classList.toggle("disabled", !valid);
+    };
+    url.addEventListener("input", syncOpen);
+    syncOpen();
+    const row = el("li", {}, url, label, open,
+      el("button", { type: "button", class: "danger", "aria-label": "このリンクを削除", onclick: () => row.remove() }, "×"));
+    return row;
+  }
+
+  function readLinks() {
+    return [...linkList.querySelectorAll("li")]
+      .map((li) => ({
+        url: li.querySelector(".link-url").value.trim(),
+        label: li.querySelector(".link-label").value.trim(),
+      }))
+      .filter((link) => link.url);
+  }
+
+  document.getElementById("task-link-add").addEventListener("click", () => {
+    const row = linkRow();
+    linkList.append(row);
+    row.querySelector(".link-url").focus();
+  });
   // 登録済みの領域と関連項目の名前（互いに独立）
   let areaNames = [];
   let relatedNames = [];
@@ -59,6 +93,7 @@ export function initTaskForm({ onSaved }) {
       field(name).value = values[name] ?? "";
     }
     field("done").checked = Boolean(values.done);
+    linkList.replaceChildren(...(values.links ?? []).map(linkRow));
     heading.textContent = task ? "タスクを編集" : "タスクを追加";
     deleteButton.hidden = !task;
     errorBox.textContent = areaNames.length ? "" : "領域が未登録です。先に「⚙ 登録」画面で領域を登録してください";
@@ -76,6 +111,7 @@ export function initTaskForm({ onSaved }) {
       priority: field("priority").value,
       done: field("done").checked,
       memo: field("memo").value,
+      links: readLinks(),
     };
   }
 
@@ -84,6 +120,11 @@ export function initTaskForm({ onSaved }) {
     const payload = readForm();
     if (!payload.area || !payload.title) {
       errorBox.textContent = "領域とタスク名は必須です";
+      return;
+    }
+    const badLink = payload.links.find((link) => !isWebUrl(link.url));
+    if (badLink) {
+      errorBox.textContent = `リンクは http:// または https:// で始まる URL にしてください（${badLink.url}）`;
       return;
     }
     if (payload.due_at < payload.start_at) {
