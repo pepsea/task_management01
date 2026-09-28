@@ -21,12 +21,13 @@ def test_create_get_and_list(client):
     assert client.get("/api/ideas").json() == [i]
 
 
-def test_list_is_newest_updated_first(client):
+def test_new_idea_on_top_and_update_keeps_order(client):
     a = make_idea(client, "A")
     b = make_idea(client, "B")
     assert [x["id"] for x in client.get("/api/ideas").json()] == [b["id"], a["id"]]
+    # 並び順は手動（並べ替え）で決めるので、本文を更新しても順番は変わらない
     client.patch(f"/api/ideas/{a['id']}", json={"body": "更新"})
-    assert [x["id"] for x in client.get("/api/ideas").json()] == [a["id"], b["id"]]
+    assert [x["id"] for x in client.get("/api/ideas").json()] == [b["id"], a["id"]]
 
 
 def test_patch(client):

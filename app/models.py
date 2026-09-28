@@ -144,6 +144,11 @@ class IdeaUpdate(BaseModel):
     prioritized: Optional[bool] = None
 
 
+class IdeaReorder(BaseModel):
+    # 画面に表示されている順のアイディア ID
+    ids: Annotated[list[int], Field(min_length=1)]
+
+
 class IdeaOut(BaseModel):
     id: int
     title: str

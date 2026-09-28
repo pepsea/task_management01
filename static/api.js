@@ -42,6 +42,7 @@ export const api = {
   createIdea: (idea) => request("POST", "/api/ideas", idea),
   updateIdea: (id, patch) => request("PATCH", `/api/ideas/${id}`, patch),
   deleteIdea: (id) => request("DELETE", `/api/ideas/${id}`),
+  reorderIdeas: (ids) => request("POST", "/api/ideas/reorder", { ids }),
   listMemos: () => request("GET", "/api/brainstorm"),
   addMemo: (text) => request("POST", "/api/brainstorm", { text }),
   deleteMemo: (id) => request("DELETE", `/api/brainstorm/${id}`),

@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS ideas (
     body TEXT NOT NULL DEFAULT '',
     archived_at TEXT,
     prioritized INTEGER NOT NULL DEFAULT 0,
+    position INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -84,6 +85,12 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE ideas ADD COLUMN archived_at TEXT")
     if "prioritized" not in idea_columns:
         conn.execute("ALTER TABLE ideas ADD COLUMN prioritized INTEGER NOT NULL DEFAULT 0")
+    if "position" not in idea_columns:
+        # 手動の並び順。導入前の並び（更新の新しい順）をそのまま初期の順番にする
+        conn.execute("ALTER TABLE ideas ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
+        ordered = conn.execute("SELECT id FROM ideas ORDER BY updated_at DESC, id DESC").fetchall()
+        for position, (idea_id,) in enumerate(ordered):
+            conn.execute("UPDATE ideas SET position = ? WHERE id = ?", (position, idea_id))
     # 関連項目が領域の下にあった旧スキーマを、領域と独立した一覧に作り直す
     related_columns = {row[1] for row in conn.execute("PRAGMA table_info(related_items)")}
     if "area_id" in related_columns:

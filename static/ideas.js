@@ -38,10 +38,18 @@ export function initIdeas({ onMakeTask }) {
     list.replaceChildren(...ideas.map((idea) =>
       el("li", {
         class: `${idea.id === selectedId ? "selected" : ""}${idea.prioritized ? " prioritized" : ""}`,
+        draggable: "true",
+        "data-id": idea.id,
+        ondragstart: (e) => onDragStart(e, idea),
+        ondragover: (e) => onDragOver(e, idea),
+        ondragleave: (e) => e.currentTarget.classList.remove("drop-before", "drop-after"),
+        ondrop: (e) => onDrop(e, idea),
+        ondragend: clearDragState,
         title: idea.id === selectedId ? "もう一度クリックで閉じる" : "",
         // 選択中のアイディアをもう一度クリックすると閉じる
         onclick: () => (idea.id === selectedId ? close() : select(idea.id)),
       },
+        el("span", { class: "drag-handle", title: "ドラッグで並べ替え", "aria-hidden": "true" }, "⋮⋮"),
         el("button", {
           type: "button",
           class: `star${idea.prioritized ? " on" : ""}`,
@@ -55,6 +63,52 @@ export function initIdeas({ onMakeTask }) {
         el("span", { class: "idea-title", title: idea.title }, idea.title),
         idea.tags.length ? el("span", { class: "tag-chips" }, idea.tags.map((t) => tagChip(t))) : null,
         idea.task_count > 0 ? el("span", { class: "badge", title: "タスク化済み" }, "✓") : null)));
+  }
+
+  // ドラッグでの並べ替え。★ の有無が同じアイディアの間でだけ動かせる（★ は常に先頭にまとまるため）
+  let dragId = null;
+
+  function clearDragState() {
+    dragId = null;
+    for (const node of list.querySelectorAll(".dragging, .drop-before, .drop-after")) {
+      node.classList.remove("dragging", "drop-before", "drop-after");
+    }
+  }
+
+  function onDragStart(e, idea) {
+    dragId = idea.id;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(idea.id));
+    e.currentTarget.classList.add("dragging");
+  }
+
+  function onDragOver(e, target) {
+    const dragged = ideas.find((i) => i.id === dragId);
+    if (!dragged || dragged.id === target.id || dragged.prioritized !== target.prioritized) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const rect = e.currentTarget.getBoundingClientRect();
+    const after = e.clientY > rect.top + rect.height / 2;
+    e.currentTarget.classList.toggle("drop-after", after);
+    e.currentTarget.classList.toggle("drop-before", !after);
+  }
+
+  async function onDrop(e, target) {
+    e.preventDefault();
+    const after = e.currentTarget.classList.contains("drop-after");
+    const dragged = ideas.find((i) => i.id === dragId);
+    clearDragState();
+    if (!dragged || dragged.id === target.id || dragged.prioritized !== target.prioritized) return;
+    const reordered = ideas.filter((i) => i.id !== dragged.id);
+    reordered.splice(reordered.indexOf(target) + (after ? 1 : 0), 0, dragged);
+    ideas = reordered;
+    renderList();
+    try {
+      await api.reorderIdeas(ideas.map((i) => i.id));
+    } catch (err) {
+      toast(err.message);
+    }
+    await refresh();
   }
 
   async function togglePriority(idea) {

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.db import get_conn, now_iso
 from app.models import BrainstormCreate, BrainstormOut, IdeaOut
-from app.routers.ideas import fetch_idea
+from app.routers.ideas import fetch_idea, top_position
 
 router = APIRouter(prefix="/api", tags=["brainstorm"])
 
@@ -43,8 +43,8 @@ def promote_memo(memo_id: int, conn: sqlite3.Connection = Depends(get_conn)):
     memo = _get_memo(conn, memo_id)
     # アイディアの作成日時は、思いついた（メモした）日時を引き継ぐ
     cur = conn.execute(
-        "INSERT INTO ideas (title, body, created_at, updated_at) VALUES (?, '', ?, ?)",
-        (memo["text"], memo["created_at"], now_iso()),
+        "INSERT INTO ideas (title, body, position, created_at, updated_at) VALUES (?, '', ?, ?, ?)",
+        (memo["text"], top_position(conn), memo["created_at"], now_iso()),
     )
     conn.execute("DELETE FROM brainstorm WHERE id = ?", (memo_id,))
     conn.commit()
