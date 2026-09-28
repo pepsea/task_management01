@@ -32,6 +32,9 @@ const gantt = createGantt(document.getElementById("gantt"), {
     await loadTasks();
   },
   onEditDecision: (decision) => decisionForm.open({ decision }),
+  onRendered: () => {
+    rangeLabel.textContent = gantt.rangeLabel();
+  },
 });
 
 const taskForm = initTaskForm({
@@ -110,8 +113,6 @@ function setScale(scale) {
 }
 
 areaFilter.addEventListener("change", loadTasks);
-// 幅が変わると表示する列数が変わるので、ガントの再描画（100ms 後）の後に期間表示も更新する
-window.addEventListener("resize", () => setTimeout(() => { rangeLabel.textContent = gantt.rangeLabel(); }, 150));
 todayFilter.addEventListener("click", () => {
   todayOnly = !todayOnly;
   renderGantt();

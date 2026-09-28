@@ -58,13 +58,20 @@ h2 { font-size: 14px; margin: 0; }
 .g-row:not(.g-head):hover .g-cells, .g-row:not(.g-head):hover .g-track { background-color: var(--bg-soft); }
 .g-row:not(.g-head) { cursor: pointer; }
 .g-cells {
-  display: grid; grid-template-columns: 32px 80px 92px 190px 96px 96px 42px 42px;
+  display: grid; grid-template-columns: var(--cells-template);
   position: sticky; left: 0; z-index: 1; background: var(--bg);
   border-right: 1px solid var(--line);
 }
 .g-cells > * { padding: 8px 6px; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .g-head { position: sticky; top: 0; z-index: 2; background: var(--bg); font-weight: 600; }
 .g-head .g-cells { z-index: 3; }
+.g-head-cell { position: relative; display: flex; align-items: center; gap: 4px; }
+.g-head-label { overflow: hidden; text-overflow: ellipsis; }
+.g-head-cell.has-toggle { justify-content: space-between; }
+.collapse-toggle { flex: none; padding: 0 6px; font-size: 12px; line-height: 20px; color: var(--muted); margin-right: 6px; white-space: nowrap; }
+.col-resizer { position: absolute; top: 0; right: 0; bottom: 0; width: 6px; cursor: col-resize; }
+.col-resizer:hover { background: var(--accent); opacity: .35; }
+body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-select: none; }
 .g-track { position: relative; background-color: var(--bg); overflow: hidden; }
 .g-head .g-track { display: flex; overflow: visible; }
 .g-col {

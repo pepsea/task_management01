@@ -9,14 +9,42 @@ const SCALES = {
   week: { minCount: 4, maxCount: 13, minColWidth: 56, nominalDays: 7 },
   month: { minCount: 3, maxCount: 12, minColWidth: 64, nominalDays: 30 },
 };
-// style.css の .g-cells の列幅の合計＋右罫線
-const CELLS_WIDTH = 671;
+// 左の表の列。width は初期幅（px）。detail の列は「開始・期限・優先・完了」としてまとめて折りたためる。
+// 見出しの右端をドラッグすると幅を変えられ、幅と折りたたみの状態はブラウザ（localStorage）に保存する
+const TABLE_COLUMNS = [
+  { key: "today", label: "☀", width: 32, resizable: false },
+  { key: "area", label: "領域", width: 110 },
+  { key: "related", label: "関連項目", width: 100 },
+  { key: "title", label: "タスク名", width: 240 },
+  { key: "start", label: "開始", width: 96, detail: true },
+  { key: "due", label: "期限", width: 96, detail: true },
+  { key: "prio", label: "優先", width: 42, detail: true },
+  { key: "done", label: "完了", width: 42, detail: true },
+];
+const MIN_COLUMN_WIDTH = 32;
+const TABLE_STORAGE_KEY = "gantt.table";
+
+function loadTableSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(TABLE_STORAGE_KEY) ?? "{}");
+    return { widths: saved.widths ?? {}, collapsed: Boolean(saved.collapsed) };
+  } catch {
+    return { widths: {}, collapsed: false };
+  }
+}
+
+function saveTableSettings(settings) {
+  try {
+    localStorage.setItem(TABLE_STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // 保存できない環境（プライベートモードなど）では、その場だけの設定にする
+  }
+}
 // ディシジョン名 1 件ぶんのおおよその表示幅（重なり判定用）と 1 段の高さ
 const DECISION_LABEL_WIDTH = 122;
 const DECISION_LANE_HEIGHT = 20;
 const DUE_SOON_DAYS = 2;
 const PRIORITY_LABEL = { high: "高", mid: "中", low: "低" };
-const COLUMNS = ["☀", "領域", "関連項目", "タスク名", "開始", "期限", "優先", "完了"];
 
 // 表示期間を列の配列にする。各列は { start: Date, days: その列が占める日数 }
 function buildColumns(scale, anchor, count) {
@@ -78,18 +106,83 @@ function sortTasks(tasks) {
   );
 }
 
-export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditDecision }) {
+export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditDecision, onRendered }) {
   let scale = "day";
   let anchor = startOfDay(new Date());
   let tasks = [];
   let decisions = [];
   // 領域名 → 色（登録画面で自動割り当て・変更）
   let areaColors = {};
+  const table = loadTableSettings();
+
+  const visibleColumns = () => TABLE_COLUMNS.filter((c) => !(c.detail && table.collapsed));
+  const widthOf = (column) => table.widths[column.key] ?? column.width;
+  // 左の表の幅（列幅の合計＋右罫線）
+  const cellsWidth = () => visibleColumns().reduce((sum, c) => sum + widthOf(c), 0) + 1;
+
+  function startResize(e, column) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = widthOf(column);
+    let frame = null;
+    const move = (ev) => {
+      table.widths[column.key] = Math.max(MIN_COLUMN_WIDTH, Math.round(startWidth + ev.clientX - startX));
+      if (!frame) {
+        frame = requestAnimationFrame(() => {
+          frame = null;
+          render();
+        });
+      }
+    };
+    const up = () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      document.body.classList.remove("col-resizing");
+      saveTableSettings(table);
+      render();
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    document.body.classList.add("col-resizing");
+  }
+
+  function resetWidth(column) {
+    delete table.widths[column.key];
+    saveTableSettings(table);
+    render();
+  }
+
+  function toggleDetails() {
+    table.collapsed = !table.collapsed;
+    saveTableSettings(table);
+    render();
+  }
+
+  function headerCell(column) {
+    const toggle = column.key === "title"
+      ? el("button", {
+        type: "button",
+        class: "collapse-toggle",
+        title: table.collapsed ? "開始・期限・優先・完了を表示する" : "開始・期限・優先・完了を折りたたむ",
+        onclick: toggleDetails,
+      }, table.collapsed ? "▸ 詳細" : "◂")
+      : null;
+    const resizer = column.resizable === false
+      ? null
+      : el("span", {
+        class: "col-resizer",
+        title: "ドラッグで幅を変更（ダブルクリックで元の幅に戻す）",
+        onmousedown: (e) => startResize(e, column),
+        ondblclick: () => resetWidth(column),
+      });
+    return el("div", { class: `g-head-cell${toggle ? " has-toggle" : ""}` },
+      el("span", { class: "g-head-label" }, column.label), toggle, resizer);
+  }
 
   // 表示期間と、日付 → 横位置（px）の換算をまとめたもの。render のたびに作り直す
   function columnCount() {
     const { minCount, maxCount, minColWidth } = SCALES[scale];
-    const available = root.clientWidth - CELLS_WIDTH;
+    const available = root.clientWidth - cellsWidth();
     return Math.min(maxCount, Math.max(minCount, Math.floor(available / minColWidth)));
   }
 
@@ -98,7 +191,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     const start = columns[0].start;
     const totalDays = columns.reduce((sum, c) => sum + c.days, 0);
     const { minColWidth, nominalDays } = SCALES[scale];
-    const available = root.clientWidth - CELLS_WIDTH;
+    const available = root.clientWidth - cellsWidth();
     const pxPerDay = Math.max(minColWidth / nominalDays, available / totalDays);
     const today = startOfDay(new Date());
     return {
@@ -148,7 +241,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       }, top, el("br"), bottom);
     });
     return el("div", { class: "g-row g-head" },
-      el("div", { class: "g-cells" }, COLUMNS.map((c) => el("div", {}, c))),
+      el("div", { class: "g-cells" }, visibleColumns().map(headerCell)),
       el("div", { class: "g-track", style: `width:${layout.width}px` }, cells));
   }
 
@@ -229,25 +322,29 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       class: `g-row${task.done ? " done" : ""}${overdue ? " overdue" : ""}${dueSoon ? " due-soon" : ""}${isToday ? " today-task" : ""}`,
       onclick: () => onEdit(task),
     },
-      el("div", { class: "g-cells" },
-        el("div", { class: "g-today-cell" }, todayButton),
-        el("div", { title: task.area },
-          el("span", { class: "area-chip", style: `background:${areaColors[task.area] ?? "#9ca3af"}` }, task.area)),
-        el("div", { title: task.related }, task.related),
-        el("div", { class: "g-title", title: task.memo ? `${task.title}\n\n${task.memo}` : task.title },
-          task.memo ? el("span", { class: "memo-mark", "aria-label": "メモあり" }, "📝") : null,
-          linkMark(task.links),
-          task.title),
-        el("div", {}, formatShort(task.start_at)),
-        el("div", { class: "g-due" }, formatShort(task.due_at)),
-        el("div", { class: `prio ${task.priority}` }, PRIORITY_LABEL[task.priority]),
-        el("div", {}, checkbox)),
+      el("div", { class: "g-cells" }, visibleColumns().map((column) => {
+        switch (column.key) {
+          case "today": return el("div", { class: "g-today-cell" }, todayButton);
+          case "area": return el("div", { title: task.area },
+            el("span", { class: "area-chip", style: `background:${areaColors[task.area] ?? "#9ca3af"}` }, task.area));
+          case "related": return el("div", { title: task.related }, task.related);
+          case "title": return el("div", { class: "g-title", title: task.memo ? `${task.title}\n\n${task.memo}` : task.title },
+            task.memo ? el("span", { class: "memo-mark", "aria-label": "メモあり" }, "📝") : null,
+            linkMark(task.links),
+            task.title);
+          case "start": return el("div", {}, formatShort(task.start_at));
+          case "due": return el("div", { class: "g-due" }, formatShort(task.due_at));
+          case "prio": return el("div", { class: `prio ${task.priority}` }, PRIORITY_LABEL[task.priority]);
+          default: return el("div", {}, checkbox);
+        }
+      })),
       track);
   }
 
   function render(nextTasks = tasks, nextDecisions = decisions) {
     tasks = nextTasks;
     decisions = nextDecisions;
+    root.style.setProperty("--cells-template", visibleColumns().map((c) => `${widthOf(c)}px`).join(" "));
     const layout = computeLayout();
     const now = new Date();
     const rows = sortTasks(tasks).map((t) => taskRow(t, layout, now));
@@ -256,6 +353,8 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       decisionRow(layout),
       ...(rows.length ? rows : [el("div", { class: "g-empty" }, "タスクがありません。「＋ タスク」から追加できます。")]),
     );
+    // 列幅や折りたたみで表示期間が変わるので、呼び出し側に知らせる（期間表示の更新用）
+    onRendered?.();
   }
 
   function rangeLabel() {
