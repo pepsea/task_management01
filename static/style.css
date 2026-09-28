@@ -94,8 +94,14 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .g-row.today-task .g-title { font-weight: 700; }
 .g-row.today-task .g-bar { box-shadow: 0 0 0 2px var(--today-line); }
 .today-filter.on { background: var(--today-bg); border-color: var(--today-line); font-weight: 600; }
-.link-mark { margin-right: 3px; font-size: 12px; text-decoration: none; }
-.link-mark:hover { opacity: .7; }
+.g-cells > .g-title-cell { display: flex; flex-direction: column; justify-content: center; gap: 1px; }
+.g-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-links { display: flex; gap: 8px; overflow: hidden; }
+.g-links a {
+  flex: 0 1 auto; min-width: 0; font-size: 11px; line-height: 15px; color: var(--accent); text-decoration: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.g-links a:hover { text-decoration: underline; }
 .links-field { display: flex; flex-direction: column; gap: 4px; }
 .field-label { font-size: 13px; color: var(--muted); }
 .link-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -124,7 +130,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 /* 完了したタスクは行全体の文字・ラベル・印を薄くする */
 .g-row.done .g-cells > * { color: #b4b9c1; }
 .g-row.done .prio { color: #b4b9c1; }
-.g-row.done .area-chip, .g-row.done .link-mark { opacity: .4; }
+.g-row.done .area-chip, .g-row.done .g-links a { opacity: .4; }
 .g-row.overdue .g-bar { outline: 2px solid var(--danger); outline-offset: 1px; }
 .g-row.overdue .g-due { color: var(--danger); font-weight: 600; }
 .g-row.due-soon .g-due { color: var(--danger); font-weight: 600; }

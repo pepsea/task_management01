@@ -75,18 +75,24 @@ function columnLabels(scale, column, index, previous) {
   return [index === 0 || d.getMonth() === 0 ? String(d.getFullYear()) : "", `${d.getMonth() + 1}月`];
 }
 
-// リンクがあればタスク名の前に 🔗。クリックで最初のリンクを新しいタブで開く（全リンクはツールチップと編集ダイアログで）
-function linkMark(links) {
+// リンクの表示名。登録した表示名、なければ「ドメイン/…」
+function linkText(link) {
+  if (link.label) return link.label;
+  const url = new URL(link.url);
+  return url.pathname.length > 1 || url.search ? `${url.host}/…` : url.host;
+}
+
+// リンクがあればタスク名の下に並べる。クリックでそのリンクを新しいタブで開く（行の編集は開かない）
+function linkList(links) {
   const usable = (links ?? []).filter((link) => isWebUrl(link.url));
   if (!usable.length) return null;
-  return el("a", {
-    class: "link-mark",
-    href: usable[0].url,
+  return el("div", { class: "g-links" }, usable.map((link) => el("a", {
+    href: link.url,
     target: "_blank",
     rel: "noopener noreferrer",
-    title: usable.map((link) => (link.label ? `${link.label}: ${link.url}` : link.url)).join("\n"),
+    title: link.label ? `${link.label}\n${link.url}` : link.url,
     onclick: (e) => e.stopPropagation(),
-  }, usable.length > 1 ? `🔗${usable.length}` : "🔗");
+  }, `🔗 ${linkText(link)}`)));
 }
 
 // 今日のタスク → その他の未完了 → 完了（完了は今日のタスクでも一番下）。
@@ -328,9 +334,9 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
           case "area": return el("div", { title: task.area },
             el("span", { class: "area-chip", style: `background:${areaColors[task.area] ?? "#9ca3af"}` }, task.area));
           case "related": return el("div", { title: task.related }, task.related);
-          case "title": return el("div", { class: "g-title", title: task.memo ? `${task.title}\n\n${task.memo}` : task.title },
-            linkMark(task.links),
-            task.title);
+          case "title": return el("div", { class: "g-title-cell" },
+            el("div", { class: "g-title", title: task.memo ? `${task.title}\n\n${task.memo}` : task.title }, task.title),
+            linkList(task.links));
           case "start": return el("div", {}, formatShort(task.start_at));
           case "due": return el("div", { class: "g-due" }, formatShort(task.due_at));
           case "prio": return el("div", { class: `prio ${task.priority}` }, PRIORITY_LABEL[task.priority]);
