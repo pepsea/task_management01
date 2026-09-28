@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>初回設定 | Task &amp; Idea Hub</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-page" data-page="setup">
+  <main class="auth-card">
+    <h1>Task &amp; Idea Hub</h1>
+    <h2>初回設定</h2>
+    <p class="auth-lead">このアプリで使うユーザー名とパスワードを決めてください。パスワードは 8 文字以上です。</p>
+    <form id="auth-form" class="auth-form">
+      <label>ユーザー名<input name="username" autocomplete="username" required maxlength="50"></label>
+      <label>パスワード<input name="password" type="password" autocomplete="new-password" required></label>
+      <label>パスワード（確認）<input name="confirm" type="password" autocomplete="new-password" required minlength="8"></label>
+      <p id="auth-error" class="form-error" role="alert"></p>
+      <button type="submit" class="primary">設定してはじめる</button>
+    </form>
+  </main>
+  <script type="module" src="auth.js"></script>
+</body>
+</html>

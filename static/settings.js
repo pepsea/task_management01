@@ -117,3 +117,25 @@ bindAddForm("area-add", api.createArea);
 bindAddForm("related-add", api.createRelated);
 
 load();
+
+// パスワード変更（変更すると、このブラウザ以外のログインは解除される）
+const passwordForm = document.getElementById("password-form");
+const passwordError = document.getElementById("password-error");
+passwordForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const value = (name) => passwordForm.elements.namedItem(name).value;
+  passwordError.textContent = "";
+  if (value("new") !== value("confirm")) {
+    passwordError.textContent = "新しいパスワード（確認）が一致しません";
+    return;
+  }
+  try {
+    await api.changePassword(value("current"), value("new"));
+    passwordForm.reset();
+    toast("パスワードを変更しました。他のブラウザのログインは解除されました");
+  } catch (err) {
+    passwordError.textContent = err.message === "入力内容を確認してください"
+      ? "新しいパスワードは 8 文字以上にしてください"
+      : err.message;
+  }
+});

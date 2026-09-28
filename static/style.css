@@ -400,3 +400,22 @@ button.link-label { color: var(--text); }
 .link-action { flex: none; border: none; background: none; padding: 0 4px; color: var(--muted); font-size: 13px; opacity: 0; }
 .link-list li:hover .link-action, .link-action:focus { opacity: 1; }
 .link-action:hover { background: none; color: var(--text); }
+
+/* ログイン状態（上部タブの右端） */
+.app-tabs { align-items: center; }
+.app-account { display: inline-flex; align-items: center; gap: 8px; padding-bottom: 4px; font-size: 13px; color: var(--muted); }
+.app-logout { font-size: 12px; padding: 2px 10px; }
+
+/* ログイン画面・初回設定画面 */
+.auth-page { min-height: 100vh; display: grid; place-items: center; background: var(--bg-soft); font-size: 14px; }
+.auth-card {
+  width: min(380px, calc(100vw - 32px)); background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+  padding: 28px; display: flex; flex-direction: column; gap: 10px;
+}
+.auth-card h1 { font-size: 18px; margin: 0; }
+.auth-card h2 { font-size: 15px; margin: 0; color: var(--muted); }
+.auth-lead { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.auth-form, .password-form { display: flex; flex-direction: column; gap: 10px; }
+.auth-form label, .password-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.auth-form button { padding: 8px; font-size: 14px; }
+.password-form button { align-self: flex-start; }

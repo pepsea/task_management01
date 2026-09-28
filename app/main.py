@@ -1,10 +1,15 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from contextlib import closing
+
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.db import init_db
+from app import auth
+from app.db import connect, init_db
+from app.routers import auth as auth_router
 from app.routers import brainstorm, decisions, ideas, links, masters, notes, tags, tasks
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -17,6 +22,35 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Task & Idea Hub", lifespan=lifespan)
+
+
+# ログインしていなくても開けるパス（ログイン画面・初回設定画面とその部品、状態確認）
+PUBLIC_PATHS = {
+    "/login.html", "/setup.html", "/auth.js", "/style.css",
+    "/api/health", "/api/auth/status", "/api/auth/login", "/api/auth/setup",
+}
+
+
+@app.middleware("http")
+async def require_login(request: Request, call_next):
+    """ログインしていなければ、API は 401、画面はログイン画面（アカウントが無ければ初回設定画面）へ。"""
+    if request.url.path in PUBLIC_PATHS:
+        return await call_next(request)
+    token = request.cookies.get(auth.SESSION_COOKIE)
+    with closing(connect()) as conn:
+        session = auth.find_session(conn, token)
+        if session is None:
+            if request.url.path.startswith("/api/"):
+                return JSONResponse({"detail": "ログインしてください"}, status_code=401)
+            target = "/setup.html" if auth.user_count(conn) == 0 else "/login.html"
+            return RedirectResponse(target, status_code=303)
+        renewed = auth.renew_if_needed(conn, session)
+    request.state.session = session
+    response = await call_next(request)
+    if renewed:
+        # 期限を延ばしたので Cookie の有効期限も延ばす
+        auth_router.set_session_cookie(response, token)
+    return response
 
 
 @app.middleware("http")
@@ -34,6 +68,7 @@ def health():
     return {"status": "ok"}
 
 
+app.include_router(auth_router.router)
 app.include_router(tasks.router)
 app.include_router(ideas.router)
 app.include_router(brainstorm.router)

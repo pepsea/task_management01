@@ -320,3 +320,13 @@ task_management01/
 - `docker-compose.yml`: `127.0.0.1:5003:5003`（このパソコンからのみ）、`./data` を `/app/data` にマウント（既存のデータをそのまま使う）、`restart: unless-stopped`
 - 依存は実行用 `requirements.txt` と開発・テスト用 `requirements-dev.txt` に分けた
 - 起動は `docker-entrypoint.sh` 経由: root で起動し、`/app/data` を appuser が書き込めなければ所有者を appuser に変更してから、`setpriv` で appuser に切り替えて uvicorn を実行する（Linux で ./data が root の持ち物になり「unable to open database file」で起動に失敗した問題への対応）
+
+### 10.25 ログイン（1 アカウント）
+- `users(id, username, password_hash, created_at)`・`sessions(token_hash, user_id, created_at, renewed_at, expires_at)`
+- アカウントが無ければ全画面が `/setup.html`（初回設定: ユーザー名・パスワード 8 文字以上）へ。作成後は 1 アカウントのみ（2 回目は 409）
+- 未ログインの API は 401、画面は `/login.html` へ 303。公開パスはログイン・初回設定画面と `auth.js`・`style.css`・`/api/health`・`/api/auth/status|login|setup`
+- パスワードは scrypt（N=2^14, r=8, p=1, salt 16 byte）。セッションは Cookie `session`（HttpOnly・SameSite=Lax・30 日）、DB にはトークンの SHA-256 のみ保存。使われたら 1 日ごとに期限を 30 日後へ延長
+- ログイン失敗は接続元ごとに 10 分で 5 回までで、超えると 10 分間 429
+- `POST /api/auth/password {current, new}`: 変更したブラウザ以外のログインを解除。上部タブ右端にユーザー名とログアウト
+- パスワードの再設定: `python -m app.cli reset-password`（Docker: `docker compose exec -u appuser app python -m app.cli reset-password`）。すべてのログインを解除
+- docker-compose の既定の公開ポートを `5003:5003`（他の PC からも接続可）に変更

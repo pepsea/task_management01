@@ -10,6 +10,11 @@ async function request(method, path, body) {
   } catch {
     throw new Error("サーバーに接続できません");
   }
+  if (res.status === 401 && !path.startsWith("/api/auth/")) {
+    // ログインが切れた（期限切れ・別の場所でパスワード変更など）のでログイン画面へ
+    location.assign("/login.html");
+    throw new Error("ログインしてください");
+  }
   if (!res.ok) {
     let message = `エラーが発生しました (${res.status})`;
     try {
@@ -51,6 +56,9 @@ export const api = {
   updateNote: (id, patch) => request("PATCH", `/api/notes/${id}`, patch),
   deleteNote: (id) => request("DELETE", `/api/notes/${id}`),
   renderMarkdown: (blocks) => request("POST", "/api/markdown", { blocks }),
+  me: () => request("GET", "/api/auth/me"),
+  logout: () => request("POST", "/api/auth/logout"),
+  changePassword: (current, next) => request("POST", "/api/auth/password", { current, new: next }),
   listLinks: () => request("GET", "/api/links"),
   createLink: (link) => request("POST", "/api/links", link),
   updateLink: (id, patch) => request("PATCH", `/api/links/${id}`, patch),

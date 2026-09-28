@@ -361,3 +361,18 @@ class LinkOut(BaseModel):
     title: str
     target: str
     kind: Literal["web", "smb", "path"]
+
+
+class SetupIn(BaseModel):
+    username: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)]
+    password: Annotated[str, StringConstraints(min_length=8, max_length=200)]
+
+
+class LoginIn(BaseModel):
+    username: Annotated[str, StringConstraints(strip_whitespace=True, max_length=50)]
+    password: Annotated[str, StringConstraints(max_length=200)]
+
+
+class PasswordChangeIn(BaseModel):
+    current: Annotated[str, StringConstraints(max_length=200)]
+    new: Annotated[str, StringConstraints(min_length=8, max_length=200)]

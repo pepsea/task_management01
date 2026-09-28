@@ -4,11 +4,26 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
+OWNER = {"username": "owner", "password": "correct-horse"}
+
+
 @pytest.fixture
-def client(tmp_path, monkeypatch):
+def anon_client(tmp_path, monkeypatch):
+    """ログインしていない状態のクライアント（アカウントもまだ無い）。"""
+    from app import auth
+
     monkeypatch.setenv("APP_DB_PATH", str(tmp_path / "test.db"))
+    auth.reset_login_attempts()
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture
+def client(anon_client):
+    """初回設定を済ませてログインした状態のクライアント。"""
+    r = anon_client.post("/api/auth/setup", json=OWNER)
+    assert r.status_code == 201, r.text
+    return anon_client
 
 
 

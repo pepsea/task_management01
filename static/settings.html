@@ -32,6 +32,17 @@
       <h2>タグ（アイディア・メモ共通）</h2>
       <ul id="tag-list" class="tag-list"></ul>
     </section>
+
+    <section class="settings-card">
+      <h2>パスワード変更</h2>
+      <form id="password-form" class="password-form">
+        <label>現在のパスワード<input name="current" type="password" autocomplete="current-password" required></label>
+        <label>新しいパスワード（8 文字以上）<input name="new" type="password" autocomplete="new-password" required minlength="8"></label>
+        <label>新しいパスワード（確認）<input name="confirm" type="password" autocomplete="new-password" required minlength="8"></label>
+        <p id="password-error" class="form-error" role="alert"></p>
+        <button type="submit" class="primary">変更する</button>
+      </form>
+    </section>
   </main>
 
   <div id="toast-area" class="toast-area" aria-live="polite"></div>
