@@ -1,5 +1,5 @@
 import { api } from "./api.js";
-import { el, toast } from "./ui.js";
+import { el, tagChip, toast } from "./ui.js";
 
 const AUTOSAVE_MS = 800;
 const SEARCH_MS = 300;
@@ -11,27 +11,62 @@ export function initIdeas({ onMakeTask }) {
   const titleInput = document.getElementById("idea-title");
   const bodyInput = document.getElementById("idea-body");
   const status = document.getElementById("idea-status");
+  const tagFilter = document.getElementById("idea-tag-filter");
+  const tagChips = document.getElementById("idea-tags");
+  const tagInput = document.getElementById("idea-tag-input");
 
   let ideas = [];
   let selectedId = null;
   let saveTimer = null;
   let searchTimer = null;
+  let selectedTags = [];
 
   function renderList() {
     if (!ideas.length) {
-      list.replaceChildren(el("li", { class: "empty" }, search.value.trim() ? "該当なし" : "アイディアはまだありません"));
+      const filtered = search.value.trim() || tagFilter.value;
+      list.replaceChildren(el("li", { class: "empty" }, filtered ? "該当なし" : "アイディアはまだありません"));
       return;
     }
     list.replaceChildren(...ideas.map((idea) =>
       el("li", { class: idea.id === selectedId ? "selected" : "", onclick: () => select(idea.id) },
         el("span", { class: "idea-title", title: idea.title }, idea.title),
+        el("span", { class: "tag-chips" }, idea.tags.map((t) => tagChip(t))),
         idea.task_count > 0 ? el("span", { class: "badge", title: "タスク化済み" }, "✓") : null)));
+  }
+
+  async function loadTags() {
+    const tags = await api.listTags();
+    const selected = tagFilter.value;
+    tagFilter.replaceChildren(
+      el("option", { value: "" }, "すべてのタグ"),
+      ...tags.map((t) => el("option", { value: t.name }, t.name)),
+    );
+    tagFilter.value = tags.some((t) => t.name === selected) ? selected : "";
+    document.getElementById("tag-options").replaceChildren(...tags.map((t) => el("option", { value: t.name })));
   }
 
   async function refresh() {
     try {
-      ideas = await api.listIdeas(search.value.trim());
+      await loadTags();
+      ideas = await api.listIdeas(search.value.trim(), tagFilter.value);
       renderList();
+    } catch (err) {
+      toast(err.message);
+    }
+  }
+
+  function renderSelectedTags() {
+    tagChips.replaceChildren(...selectedTags.map((tag) =>
+      tagChip(tag, { onRemove: () => saveTags(selectedTags.filter((t) => t.name !== tag.name).map((t) => t.name)) })));
+  }
+
+  async function saveTags(names) {
+    if (selectedId === null) return;
+    try {
+      const updated = await api.updateIdea(selectedId, { tags: names });
+      selectedTags = updated.tags;
+      renderSelectedTags();
+      await refresh();
     } catch (err) {
       toast(err.message);
     }
@@ -79,6 +114,9 @@ export function initIdeas({ onMakeTask }) {
       selectedId = idea.id;
       titleInput.value = idea.title;
       bodyInput.value = idea.body;
+      selectedTags = idea.tags;
+      renderSelectedTags();
+      tagInput.value = "";
       status.textContent = "";
       editor.hidden = false;
       renderList();
@@ -89,12 +127,24 @@ export function initIdeas({ onMakeTask }) {
 
   async function reveal(id) {
     search.value = "";
+    tagFilter.value = "";
     await refresh();
     await select(id);
   }
 
   titleInput.addEventListener("input", scheduleSave);
   bodyInput.addEventListener("input", scheduleSave);
+  tagFilter.addEventListener("change", refresh);
+  tagInput.addEventListener("keydown", (e) => {
+    // 日本語入力の変換確定の Enter では追加しない
+    if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
+    e.preventDefault();
+    const name = tagInput.value.trim();
+    if (!name) return;
+    tagInput.value = "";
+    if (selectedTags.some((t) => t.name === name)) return;
+    saveTags([...selectedTags.map((t) => t.name), name]);
+  });
   search.addEventListener("input", () => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(refresh, SEARCH_MS);

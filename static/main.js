@@ -50,15 +50,15 @@ async function loadTasks() {
     const [areas, loaded] = await Promise.all([api.listAreas(), api.listTasks(areaFilter.value)]);
     tasks = loaded;
     const selected = areaFilter.value;
+    const areaNames = areas.map((a) => a.name);
     areaFilter.replaceChildren(
       el("option", { value: "" }, "すべての領域"),
-      ...areas.map((a) => el("option", { value: a }, a)),
+      ...areaNames.map((name) => el("option", { value: name }, name)),
     );
-    // 絞り込み中の領域がタスク削除で消えた場合は「すべて」に戻す
-    areaFilter.value = areas.includes(selected) ? selected : "";
+    // 絞り込み中の領域が登録画面で消された場合は「すべて」に戻す
+    areaFilter.value = areaNames.includes(selected) ? selected : "";
     if (areaFilter.value !== selected) tasks = await api.listTasks("");
-    const related = [...new Set(tasks.map((t) => t.related).filter(Boolean))].sort();
-    taskForm.setOptions({ areas, related });
+    taskForm.setOptions(areas);
     renderGantt();
   } catch (err) {
     toast(err.message);
@@ -74,16 +74,16 @@ async function loadDecisions() {
   }
 }
 
+const scaleButtons = document.querySelectorAll("[data-scale]");
+
 function setScale(scale) {
-  document.getElementById("scale-week").classList.toggle("active", scale === "week");
-  document.getElementById("scale-month").classList.toggle("active", scale === "month");
+  for (const button of scaleButtons) button.classList.toggle("active", button.dataset.scale === scale);
   gantt.setScale(scale);
   rangeLabel.textContent = gantt.rangeLabel();
 }
 
 areaFilter.addEventListener("change", loadTasks);
-document.getElementById("scale-week").addEventListener("click", () => setScale("week"));
-document.getElementById("scale-month").addEventListener("click", () => setScale("month"));
+for (const button of scaleButtons) button.addEventListener("click", () => setScale(button.dataset.scale));
 document.getElementById("prev").addEventListener("click", () => { gantt.shift(-1); rangeLabel.textContent = gantt.rangeLabel(); });
 document.getElementById("next").addEventListener("click", () => { gantt.shift(1); rangeLabel.textContent = gantt.rangeLabel(); });
 document.getElementById("today").addEventListener("click", () => { gantt.goToday(); rangeLabel.textContent = gantt.rangeLabel(); });

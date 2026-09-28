@@ -13,9 +13,10 @@
         <select id="area-filter" aria-label="領域で絞り込み">
           <option value="">すべての領域</option>
         </select>
-        <div class="seg" role="group" aria-label="表示期間">
-          <button id="scale-week" type="button" class="active">週</button>
-          <button id="scale-month" type="button">月</button>
+        <div class="seg" role="group" aria-label="表示単位">
+          <button type="button" data-scale="day" class="active">日</button>
+          <button type="button" data-scale="week">週</button>
+          <button type="button" data-scale="month">月</button>
         </div>
         <button id="prev" type="button" aria-label="前へ">◀</button>
         <button id="today" type="button">今日</button>
@@ -24,6 +25,7 @@
         <span class="spacer"></span>
         <button id="add-decision" type="button" class="decision-btn">＋ ディシジョン</button>
         <button id="add-task" type="button" class="primary">＋ タスク</button>
+        <a href="settings.html" class="settings-link" title="領域・関連項目・タグの登録">⚙ 登録</a>
       </header>
       <div id="gantt" class="gantt"></div>
     </section>
@@ -34,13 +36,22 @@
           <h2>アイディア保管庫</h2>
           <button id="add-idea" type="button" aria-label="アイディアを追加">＋</button>
         </header>
-        <input id="idea-search" type="search" placeholder="検索（タイトル・本文）">
+        <div class="idea-filters">
+          <input id="idea-search" type="search" placeholder="検索（タイトル・本文）">
+          <select id="idea-tag-filter" aria-label="タグで絞り込み">
+            <option value="">すべてのタグ</option>
+          </select>
+        </div>
         <ul id="idea-list" class="idea-list"></ul>
         <div id="idea-editor" class="idea-editor" hidden>
           <div class="editor-head">
             <input id="idea-title" aria-label="タイトル">
             <button id="idea-to-task" type="button" class="primary">タスク化</button>
             <button id="idea-delete" type="button" class="danger">削除</button>
+          </div>
+          <div class="tag-editor">
+            <span id="idea-tags" class="tag-chips"></span>
+            <input id="idea-tag-input" list="tag-options" placeholder="＋タグ（Enter）" aria-label="タグを追加">
           </div>
           <textarea id="idea-body" placeholder="アイディアを書く…"></textarea>
           <span id="idea-status" class="status"></span>
@@ -58,8 +69,9 @@
   <dialog id="task-dialog">
     <form id="task-form">
       <h2 id="task-form-title">タスクを追加</h2>
-      <label>領域<input name="area" list="area-options" required></label>
-      <label>関連項目<input name="related" list="related-options"></label>
+      <label>領域<select name="area" required></select></label>
+      <label>関連項目<select name="related"></select></label>
+      <p class="form-hint">選択肢は「⚙ 登録」画面で追加できます</p>
       <label>タスク名<input name="title" required></label>
       <label>開始日時<input name="start_at" type="datetime-local" required></label>
       <label>期限<input name="due_at" type="datetime-local" required></label>
@@ -70,6 +82,7 @@
           <option value="low">低</option>
         </select>
       </label>
+      <label>メモ<textarea name="memo" rows="4" placeholder="進め方・連絡先・気づきなど"></textarea></label>
       <label class="check"><input name="done" type="checkbox">完了</label>
       <p id="task-form-error" class="form-error"></p>
       <div class="actions">
@@ -97,8 +110,7 @@
     </form>
   </dialog>
 
-  <datalist id="area-options"></datalist>
-  <datalist id="related-options"></datalist>
+  <datalist id="tag-options"></datalist>
   <div id="toast-area" class="toast-area" aria-live="polite"></div>
 
   <script type="module" src="main.js"></script>

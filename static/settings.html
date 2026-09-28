@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登録 | Task &amp; Idea Hub</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="settings-page">
+  <header class="toolbar">
+    <a href="./" class="settings-link">← ガントに戻る</a>
+    <h1 class="settings-title">登録</h1>
+  </header>
+
+  <main class="settings">
+    <section class="settings-card">
+      <h2>領域と関連項目</h2>
+      <p class="settings-note">
+        タスクの「領域」「関連項目」はここで登録したものから選びます。
+        名前を変えると、既存のタスクにも反映されます。タスクで使われているものは削除できません。
+      </p>
+      <form id="area-add" class="add-row">
+        <input name="name" placeholder="新しい領域（例：仕事）" aria-label="新しい領域" required>
+        <button type="submit" class="primary">領域を追加</button>
+      </form>
+      <div id="area-list" class="area-list"></div>
+    </section>
+
+    <section class="settings-card">
+      <h2>アイディアのタグ</h2>
+      <p class="settings-note">
+        タグはアイディアの編集欄で入力すると自動で作られます。ここでは色・名前の変更と削除ができます。
+      </p>
+      <ul id="tag-list" class="tag-list"></ul>
+    </section>
+  </main>
+
+  <div id="toast-area" class="toast-area" aria-live="polite"></div>
+  <script type="module" src="settings.js"></script>
+</body>
+</html>

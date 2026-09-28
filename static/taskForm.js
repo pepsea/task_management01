@@ -21,20 +21,48 @@ export function initTaskForm({ onSaved }) {
 
   let editing = null;
   let ideaId = null;
+  // 登録済みの領域と関連項目（GET /api/areas の結果）
+  let masters = [];
+
+  function fillAreaOptions(current) {
+    const names = masters.map((a) => a.name);
+    // 登録から消えた値のタスクを編集するときも、今の値を選べるように残す
+    if (current && !names.includes(current)) names.push(current);
+    field("area").replaceChildren(
+      el("option", { value: "" }, "（選択してください）"),
+      ...names.map((n) => el("option", { value: n }, n)),
+    );
+    field("area").value = current ?? "";
+  }
+
+  function fillRelatedOptions(current) {
+    const area = masters.find((a) => a.name === field("area").value);
+    const names = area ? area.related.map((r) => r.name) : [];
+    if (current && !names.includes(current)) names.push(current);
+    field("related").replaceChildren(
+      el("option", { value: "" }, "（なし）"),
+      ...names.map((n) => el("option", { value: n }, n)),
+    );
+    field("related").value = current ?? "";
+  }
+
+  field("area").addEventListener("change", () => fillRelatedOptions(""));
 
   function open({ task = null, defaults = {} } = {}) {
     editing = task;
     ideaId = task ? task.idea_id : (defaults.idea_id ?? null);
     const values = task ?? {
-      area: "", related: "", title: "", priority: "mid", done: false, ...defaultTimes(), ...defaults,
+      area: "", related: "", title: "", priority: "mid", done: false, memo: "", ...defaultTimes(), ...defaults,
     };
-    for (const name of ["area", "related", "title", "start_at", "due_at", "priority"]) {
+    fillAreaOptions(values.area);
+    fillRelatedOptions(values.related);
+    for (const name of ["title", "start_at", "due_at", "priority", "memo"]) {
       field(name).value = values[name] ?? "";
     }
     field("done").checked = Boolean(values.done);
     heading.textContent = task ? "タスクを編集" : "タスクを追加";
     deleteButton.hidden = !task;
-    errorBox.textContent = "";
+    errorBox.textContent = masters.length ? "" : "領域が未登録です。先に「⚙ 登録」画面で領域を登録してください";
     dialog.showModal();
     field(values.area ? "title" : "area").focus();
   }
@@ -48,6 +76,7 @@ export function initTaskForm({ onSaved }) {
       due_at: field("due_at").value,
       priority: field("priority").value,
       done: field("done").checked,
+      memo: field("memo").value,
     };
   }
 
@@ -86,11 +115,8 @@ export function initTaskForm({ onSaved }) {
 
   document.getElementById("task-cancel").addEventListener("click", () => dialog.close());
 
-  function setOptions({ areas, related }) {
-    const fill = (id, values) =>
-      document.getElementById(id).replaceChildren(...values.map((v) => el("option", { value: v })));
-    fill("area-options", areas);
-    fill("related-options", related);
+  function setOptions(areas) {
+    masters = areas;
   }
 
   return { open, setOptions };

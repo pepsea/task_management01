@@ -20,3 +20,11 @@ export function toast(message) {
   area.append(node);
   setTimeout(() => node.remove(), 4000);
 }
+
+export function tagChip(tag, { onRemove } = {}) {
+  return el("span", { class: "tag", style: `background:${tag.color}`, title: tag.name },
+    tag.name,
+    onRemove
+      ? el("button", { type: "button", "aria-label": `タグ「${tag.name}」を外す`, onclick: onRemove }, "×")
+      : null);
+}
