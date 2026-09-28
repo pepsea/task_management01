@@ -375,3 +375,28 @@ dialog::backdrop { background: rgba(0, 0, 0, .25); }
 :is(.md-block, .md-view) ul { list-style-type: disc; }
 :is(.md-block, .md-view) ul ul { list-style-type: circle; }
 :is(.md-block, .md-view) ul ul ul { list-style-type: square; }
+
+/* リンクリスト（TODO 画面の右上） */
+.quick-links { flex: none; max-height: 45%; border-bottom: 1px solid var(--line); }
+.brainstorm { flex: 1; }
+.link-form { display: flex; flex-direction: column; gap: 4px; }
+.link-form input { font-size: 13px; }
+.link-form-actions { display: flex; align-items: center; gap: 4px; }
+.link-form-actions button { font-size: 12px; padding: 3px 10px; }
+.link-list { list-style: none; margin: 0; padding: 0; overflow: auto; }
+.link-list li { display: flex; align-items: center; gap: 6px; padding: 4px 2px; border-bottom: 1px dashed var(--line); }
+.link-list li.empty { color: var(--muted); font-size: 13px; border-bottom: none; }
+.link-list li.dragging { opacity: .4; }
+.link-list li.drop-before { box-shadow: inset 0 3px 0 var(--accent); }
+.link-list li.drop-after { box-shadow: inset 0 -3px 0 var(--accent); }
+.link-list li:hover .drag-handle { color: var(--muted); }
+.link-icon { flex: none; font-size: 13px; }
+.link-label {
+  flex: 1; min-width: 0; text-align: left; font-size: 14px; color: var(--accent); text-decoration: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: none; background: none; padding: 0; cursor: pointer;
+}
+.link-label:hover { text-decoration: underline; background: none; }
+button.link-label { color: var(--text); }
+.link-action { flex: none; border: none; background: none; padding: 0 4px; color: var(--muted); font-size: 13px; opacity: 0; }
+.link-list li:hover .link-action, .link-action:focus { opacity: 1; }
+.link-action:hover { background: none; color: var(--text); }

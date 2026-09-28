@@ -308,3 +308,9 @@ task_management01/
 ### 10.22 メモのエクスポート
 - NOTES の編集欄の「⬇ エクスポート」とアーカイブのメモ行の「⬇」で、1 件ずつ Markdown ファイルを保存する（ブラウザ内で生成、サーバー API なし）
 - 中身は `# タイトル` の下に本文。ファイル名は `日付_タイトル.md`（ファイル名に使えない文字は `_`）
+
+### 10.23 リンクリスト（TODO 画面の右上）
+- 右ペインのブレストの上に「リンク」一覧。＋でタイトル（任意）とリンク先を登録、✎ で編集、× で削除、⋮⋮ ドラッグで並べ替え（新規は一番上）
+- `quick_links(id, title, target, position, created_at)`。種類はリンク先から判定: web（http/https）・smb（smb://）・path（`C:\` `C:/` `\\サーバー\` `//サーバー/` `file://`）。それ以外（javascript: など）は 422
+- web は新しいタブで開く。smb はそのまま開く（Mac では Finder）。path はブラウザの制限で開けないため、クリックでパスをクリップボードにコピーし、エクスプローラーや Finder に貼り付けるよう案内する
+- API: `GET/POST /api/links`、`PATCH/DELETE /api/links/{id}`、`POST /api/links/reorder`

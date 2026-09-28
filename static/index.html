@@ -32,6 +32,25 @@
     </section>
 
     <aside class="pane pane-side">
+      <section class="panel quick-links">
+        <header class="panel-head">
+          <h2>リンク</h2>
+          <span class="spacer"></span>
+          <button id="link-add" type="button" aria-label="リンクを追加" title="リンクを追加">＋</button>
+        </header>
+        <form id="link-form" class="link-form" hidden>
+          <input name="title" placeholder="タイトル（任意）" aria-label="タイトル" maxlength="100">
+          <input name="target" placeholder="https://…　C:\…　\\サーバー\…　smb://…" aria-label="リンク先" required>
+          <div class="link-form-actions">
+            <span id="link-form-error" class="form-error"></span>
+            <span class="spacer"></span>
+            <button id="link-cancel" type="button">キャンセル</button>
+            <button type="submit" class="primary">保存</button>
+          </div>
+        </form>
+        <ul id="link-list" class="link-list"></ul>
+      </section>
+
       <section class="panel brainstorm">
         <header class="panel-head">
           <h2>ブレスト</h2>
@@ -97,5 +116,6 @@
 
   <script type="module" src="nav.js"></script>
   <script type="module" src="main.js"></script>
+  <script type="module" src="quickLinks.js"></script>
 </body>
 </html>

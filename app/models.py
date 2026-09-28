@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from urllib.parse import urlsplit
 from typing import Annotated, Literal, Optional
@@ -306,3 +307,57 @@ class MarkdownIn(BaseModel):
 
 class MarkdownOut(BaseModel):
     html: list[str]
+
+
+# リンクリストのリンク先。Web（http/https）・社内サーバーなどのパス・smb:// を受け付ける
+WEB_URL = re.compile(r"^https?://[^\s/]+", re.IGNORECASE)
+SMB_URL = re.compile(r"^smb://[^\s/]+", re.IGNORECASE)
+LOCAL_PATH = re.compile(r"^([A-Za-z]:[\\/]|\\\\[^\\]|//[^/]|file:///?\S)", re.IGNORECASE)
+
+
+def link_kind(target: str) -> Optional[str]:
+    if WEB_URL.match(target):
+        return "web"
+    if SMB_URL.match(target):
+        return "smb"
+    if LOCAL_PATH.match(target):
+        return "path"
+    return None
+
+
+def check_link_target(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return value
+    value = value.strip()
+    if not value or len(value) > 2000 or link_kind(value) is None:
+        raise ValueError(
+            "リンク先は http(s)://、smb://、C:\\…、\\\\サーバー\\…、file:// のいずれかで入力してください"
+        )
+    return value
+
+
+class LinkCreate(BaseModel):
+    title: Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)] = ""
+    target: str
+
+    @field_validator("target")
+    @classmethod
+    def validate_target(cls, value):
+        return check_link_target(value)
+
+
+class LinkUpdate(BaseModel):
+    title: Optional[Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]] = None
+    target: Optional[str] = None
+
+    @field_validator("target")
+    @classmethod
+    def validate_target(cls, value):
+        return check_link_target(value)
+
+
+class LinkOut(BaseModel):
+    id: int
+    title: str
+    target: str
+    kind: Literal["web", "smb", "path"]
