@@ -97,6 +97,12 @@ function linkList(links) {
 
 // 今日のタスク → その他の未完了 → 完了（完了は今日のタスクでも一番下）。
 // それぞれ締切（期限）の早い順、同じ締切は開始の早い順
+// 土曜は "sat"、日曜は "sun"、平日は ""
+function weekendOf(date) {
+  if (!isWeekend(date)) return "";
+  return date.getDay() === 6 ? "sat" : "sun";
+}
+
 function sortRank(task, today) {
   if (task.done) return 2;
   return task.today_on === today ? 0 : 1;
@@ -216,13 +222,20 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
 
   const centerOf = (index, layout) => (index + 0.5) * layout.pxPerDay;
 
+  // 列の区切り線。日表示では土日の列に背景の帯も敷く（ディシジョン行・タスク行の共通の下地）
   function gridLines(layout) {
+    const nodes = [];
     let offset = 0;
-    return layout.columns.map((column) => {
-      const line = el("div", { class: "g-grid-line", style: `left:${offset * layout.pxPerDay}px` });
+    for (const column of layout.columns) {
+      const left = offset * layout.pxPerDay;
+      const weekendClass = scale === "day" ? weekendOf(column.start) : "";
+      if (weekendClass) {
+        nodes.push(el("div", { class: `g-weekend-band ${weekendClass}`, style: `left:${left}px;width:${layout.pxPerDay}px` }));
+      }
+      nodes.push(el("div", { class: "g-grid-line", style: `left:${left}px` }));
       offset += column.days;
-      return line;
-    });
+    }
+    return nodes;
   }
 
   function markers(layout) {
@@ -240,9 +253,9 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       const [top, bottom] = columnLabels(scale, column, i, layout.columns[i - 1]);
       const offset = dayDiff(column.start, today);
       const containsToday = offset >= 0 && offset < column.days;
-      const weekend = scale === "day" && isWeekend(column.start);
+      const weekendClass = scale === "day" ? weekendOf(column.start) : "";
       return el("div", {
-        class: `g-col${weekend ? " weekend" : ""}${containsToday ? " is-today" : ""}`,
+        class: `g-col${weekendClass ? ` weekend ${weekendClass}` : ""}${containsToday ? " is-today" : ""}`,
         style: `width:${column.days * layout.pxPerDay}px`,
       }, top, el("br"), bottom);
     });

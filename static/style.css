@@ -80,7 +80,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   border-left: 1px solid var(--line); overflow: hidden; white-space: nowrap;
 }
 .g-col:first-child { border-left: none; }
-.g-col.weekend { color: var(--muted); background: var(--bg-soft); }
+/* 土日: 見出しの文字は 土=青・日=赤、見出しと各行の背景に淡い色の帯 */
+.g-col.sat { color: #1d4ed8; background: #dbe7ff; font-weight: 700; }
+.g-col.sun { color: #c81e1e; background: #ffdede; font-weight: 700; }
+.g-weekend-band { position: absolute; top: 0; bottom: 0; }
+.g-weekend-band.sat { background: rgba(37, 99, 235, .12); }
+.g-weekend-band.sun { background: rgba(220, 38, 38, .12); }
 .g-col.is-today { color: var(--accent); font-weight: 700; }
 .g-grid-line { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
 .g-cells > .g-today-cell { padding: 3px 0; text-align: center; overflow: visible; }
