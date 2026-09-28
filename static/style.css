@@ -419,3 +419,12 @@ button.link-label { color: var(--text); }
 .auth-form label, .password-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
 .auth-form button { padding: 8px; font-size: 14px; }
 .password-form button { align-self: flex-start; }
+
+/* データのエクスポート（登録画面） */
+.export-note { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.6; }
+a.button {
+  display: inline-block; align-self: flex-start; padding: 6px 12px; border-radius: 6px; text-decoration: none;
+  border: 1px solid var(--line);
+}
+a.button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+a.button.primary:hover { opacity: .9; }

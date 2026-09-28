@@ -141,6 +141,11 @@ Docker を使わない場合は `.venv/bin/python -m app.cli reset-password`。
 
 - 保存先: `data/app.db`（SQLite）。git 管理外
 - バックアップ: アプリを止めてから `data/app.db` をコピーする
+- エクスポート: **登録** タブの「⬇ すべてのデータをダウンロード（.zip）」で、すべてのデータを ZIP でダウンロードできる
+  - `data.json`: すべてのデータ（タスク・ディシジョン・アイディア・ブレスト・メモ・領域・関連項目・タグ・リンク）
+  - `tasks.csv` / `ideas.csv`: Excel で開ける一覧
+  - `notes/`: メモを 1 件ずつ Markdown で（アーカイブしたメモは `notes/archive/`）
+  - ログインのパスワードとログイン状態は含まない
 
 ## テスト
 

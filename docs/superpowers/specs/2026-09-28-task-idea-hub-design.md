@@ -330,3 +330,12 @@ task_management01/
 - `POST /api/auth/password {current, new}`: 変更したブラウザ以外のログインを解除。上部タブ右端にユーザー名とログアウト
 - パスワードの再設定: `python -m app.cli reset-password`（Docker: `docker compose exec -u appuser app python -m app.cli reset-password`）。すべてのログインを解除
 - docker-compose の既定の公開ポートを `5003:5003`（他の PC からも接続可）に変更
+
+### 10.26 全データのエクスポート
+- `GET /api/export`（要ログイン）: `task-idea-hub-export-YYYYMMDD-HHMM.zip` をダウンロード
+  - `data.json`（format / version / exported_at と全テーブル。タスクのリンクは配列、タグは各アイディア・メモに付けて出力）
+  - `tasks.csv` / `ideas.csv`（BOM 付き UTF-8。Excel 用）
+  - `notes/日付_タイトル_ID.md`（アーカイブは `notes/archive/`。中身は画面のエクスポートと同じ）
+  - `README.txt`
+- users・sessions（パスワードのハッシュ・ログイン状態）は含めない
+- 登録画面に「データのエクスポート」欄とダウンロードボタン

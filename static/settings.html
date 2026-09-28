@@ -34,6 +34,15 @@
     </section>
 
     <section class="settings-card">
+      <h2>データのエクスポート</h2>
+      <p class="export-note">
+        すべてのデータを ZIP でダウンロードします。中身は data.json（すべてのデータ）、
+        tasks.csv・ideas.csv（Excel で開けます）、notes/（メモの Markdown）です。ログインのパスワードは含みません。
+      </p>
+      <a class="button primary export-button" href="/api/export">⬇ すべてのデータをダウンロード（.zip）</a>
+    </section>
+
+    <section class="settings-card">
       <h2>パスワード変更</h2>
       <form id="password-form" class="password-form">
         <label>現在のパスワード<input name="current" type="password" autocomplete="current-password" required></label>
