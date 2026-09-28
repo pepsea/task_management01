@@ -14,7 +14,13 @@
   --danger: #b91c1c;
   --decision: #7c3aed;
   --day-w: 40px;
-  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  /* Mac・Windows・Linux それぞれで見やすい日本語フォントを使う
+     （Mac: ヒラギノ／Windows: Segoe UI + 游ゴシック UI・メイリオ／Linux: Noto Sans CJK） */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Yu Gothic UI", "Meiryo UI", Meiryo, "Noto Sans JP", "Noto Sans CJK JP", system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Cascadia Mono", "Noto Sans Mono", monospace;
+  font-family: var(--font-sans);
   color: var(--text);
 }
 * { box-sizing: border-box; }
@@ -307,7 +313,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .25); }
 .md-block.pending { white-space: pre-wrap; color: var(--muted); }
 .md-edit {
   display: block; width: 100%; resize: none; overflow: hidden; margin: 2px 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; line-height: 1.6;
+  font-family: var(--font-mono); font-size: 14px; line-height: 1.6;
   padding: 6px 8px; border: 1px solid var(--accent); border-radius: 6px; background: #fbfcff;
 }
 .md-edit:focus { outline: none; box-shadow: 0 0 0 3px #dbe6fd; }
@@ -327,7 +333,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .25); }
 :is(.md-block, .md-view) li.task-item { list-style: none; margin-left: -1.3em; }
 :is(.md-block, .md-view) li.task-item > input { margin: 0 .45em 0 0; vertical-align: middle; cursor: pointer; }
 :is(.md-block, .md-view) code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em;
+  font-family: var(--font-mono); font-size: .88em;
   background: #f1f3f5; padding: 1px 5px; border-radius: 4px;
 }
 :is(.md-block, .md-view) pre { background: #f6f8fa; padding: 10px 12px; border-radius: 6px; overflow: auto; margin: .4em 0; }
