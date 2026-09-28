@@ -52,12 +52,9 @@ export function initIdeas({ onMakeTask }) {
             togglePriority(idea);
           },
         }, idea.prioritized ? "★" : "☆"),
-        el("div", { class: "idea-item" },
-          el("div", { class: "idea-item-head" },
-            el("span", { class: "idea-title", title: idea.title }, idea.title),
-            idea.task_count > 0 ? el("span", { class: "badge", title: "タスク化済み" }, "✓") : null),
-          idea.body.trim() ? el("div", { class: "idea-excerpt" }, idea.body.trim()) : null,
-          idea.tags.length ? el("div", { class: "tag-chips" }, idea.tags.map((t) => tagChip(t))) : null))));
+        el("span", { class: "idea-title", title: idea.title }, idea.title),
+        idea.tags.length ? el("span", { class: "tag-chips" }, idea.tags.map((t) => tagChip(t))) : null,
+        idea.task_count > 0 ? el("span", { class: "badge", title: "タスク化済み" }, "✓") : null)));
   }
 
   async function togglePriority(idea) {
