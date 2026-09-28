@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     idea_id INTEGER REFERENCES ideas(id) ON DELETE SET NULL,
     memo TEXT NOT NULL DEFAULT '',
     today_on TEXT,
+    links TEXT NOT NULL DEFAULT '[]',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -72,6 +73,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE tasks ADD COLUMN memo TEXT NOT NULL DEFAULT ''")
     if "today_on" not in task_columns:
         conn.execute("ALTER TABLE tasks ADD COLUMN today_on TEXT")
+    if "links" not in task_columns:
+        conn.execute("ALTER TABLE tasks ADD COLUMN links TEXT NOT NULL DEFAULT '[]'")
     idea_columns = {row[1] for row in conn.execute("PRAGMA table_info(ideas)")}
     if "archived_at" not in idea_columns:
         conn.execute("ALTER TABLE ideas ADD COLUMN archived_at TEXT")

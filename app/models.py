@@ -1,7 +1,8 @@
 from datetime import datetime
+from urllib.parse import urlsplit
 from typing import Annotated, Literal, Optional
 
-from pydantic import BaseModel, StringConstraints, field_validator, model_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator, model_validator
 
 DT_FORMAT = "%Y-%m-%dT%H:%M"
 
@@ -19,6 +20,29 @@ def check_datetime(value: Optional[str]) -> Optional[str]:
     return value
 
 
+class TaskLink(BaseModel):
+    url: str
+    label: Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)] = ""
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, value: str) -> str:
+        # 画面では href にそのまま入れるので、javascript: などを防ぐため http/https だけを許可する
+        value = value.strip()
+        parts = urlsplit(value)
+        if (
+            parts.scheme not in ("http", "https")
+            or not parts.netloc
+            or any(c.isspace() for c in value)
+            or len(value) > 2000
+        ):
+            raise ValueError("リンクは http:// または https:// で始まる URL にしてください")
+        return value
+
+
+Links = Annotated[list[TaskLink], Field(max_length=20)]
+
+
 class TaskCreate(BaseModel):
     area: NonEmptyStr
     related: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] = ""
@@ -31,6 +55,7 @@ class TaskCreate(BaseModel):
     memo: Annotated[str, StringConstraints(max_length=10000)] = ""
     # 「今日のタスク」に選んだ日（YYYY-MM-DD）。その日だけ今日のタスクとして強調する
     today_on: Optional[str] = None
+    links: Links = []
 
     @field_validator("start_at", "due_at")
     @classmethod
@@ -60,6 +85,7 @@ class TaskUpdate(BaseModel):
     idea_id: Optional[int] = None
     memo: Optional[Annotated[str, StringConstraints(max_length=10000)]] = None
     today_on: Optional[str] = None
+    links: Optional[Links] = None
 
     @field_validator("start_at", "due_at")
     @classmethod
@@ -84,6 +110,7 @@ class TaskOut(BaseModel):
     idea_id: Optional[int]
     memo: str
     today_on: Optional[str]
+    links: list[TaskLink]
     created_at: str
     updated_at: str
 

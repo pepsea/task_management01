@@ -124,3 +124,25 @@ def test_existing_db_without_memo_column_is_migrated(tmp_path, monkeypatch):
     conn = sqlite3.connect(path)
     assert conn.execute("SELECT memo FROM tasks").fetchone() == ("",)
     conn.close()
+
+
+def test_existing_db_gets_links_column(tmp_path, monkeypatch):
+    path = tmp_path / "old.db"
+    conn = sqlite3.connect(path)
+    conn.execute(
+        """CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, area TEXT NOT NULL,
+           related TEXT NOT NULL DEFAULT '', title TEXT NOT NULL, start_at TEXT NOT NULL,
+           due_at TEXT NOT NULL, priority TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0,
+           idea_id INTEGER, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)"""
+    )
+    conn.execute(
+        "INSERT INTO tasks (area, title, start_at, due_at, priority, created_at, updated_at)"
+        " VALUES ('仕事', '既存', '2026-10-01T09:00', '2026-10-02T09:00', 'mid', 'x', 'x')"
+    )
+    conn.commit()
+    conn.close()
+    monkeypatch.setenv("APP_DB_PATH", str(path))
+    init_db()
+    conn = sqlite3.connect(path)
+    assert conn.execute("SELECT links FROM tasks").fetchone() == ("[]",)
+    conn.close()

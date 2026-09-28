@@ -150,3 +150,51 @@ def test_today_mark_set_and_clear(client):
 def test_today_mark_invalid_date_rejected(client):
     t = make_task(client)
     assert client.patch(f"/api/tasks/{t['id']}", json={"today_on": "9/28"}).status_code == 422
+
+
+def test_links_default_empty_and_can_be_set(client):
+    t = make_task(client)
+    assert t["links"] == []
+    links = [
+        {"url": "https://example.com/spec", "label": "仕様書"},
+        {"url": "http://intra.local/wiki"},
+    ]
+    r = client.patch(f"/api/tasks/{t['id']}", json={"links": links})
+    assert r.status_code == 200
+    assert r.json()["links"] == [
+        {"url": "https://example.com/spec", "label": "仕様書"},
+        {"url": "http://intra.local/wiki", "label": ""},
+    ]
+    assert client.get("/api/tasks").json()[0]["links"] == r.json()["links"]
+
+
+def test_links_on_create_and_replace(client):
+    t = make_task(client, links=[{"url": "https://a.example", "label": " A "}])
+    assert t["links"] == [{"url": "https://a.example", "label": "A"}]
+    r = client.patch(f"/api/tasks/{t['id']}", json={"links": []})
+    assert r.json()["links"] == []
+
+
+@pytest.mark.parametrize("url", [
+    "javascript:alert(1)", "ftp://example.com", "example.com", "", "https://", "https://exa mple.com",
+])
+def test_unsafe_or_invalid_link_rejected(client, url):
+    t = make_task(client)
+    r = client.patch(f"/api/tasks/{t['id']}", json={"links": [{"url": url}]})
+    assert r.status_code == 422
+
+
+def test_link_url_is_stripped(client):
+    t = make_task(client, links=[{"url": "  https://a.example/x  "}])
+    assert t["links"][0]["url"] == "https://a.example/x"
+
+
+def test_too_many_links_rejected(client):
+    t = make_task(client)
+    links = [{"url": f"https://example.com/{i}"} for i in range(21)]
+    assert client.patch(f"/api/tasks/{t['id']}", json={"links": links}).status_code == 422
+
+
+def test_patch_null_links_rejected(client):
+    t = make_task(client)
+    assert client.patch(f"/api/tasks/{t['id']}", json={"links": None}).status_code == 422

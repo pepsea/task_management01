@@ -1,3 +1,4 @@
+import json
 import sqlite3
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -8,14 +9,21 @@ from app.models import TaskCreate, TaskOut, TaskUpdate
 router = APIRouter(prefix="/api", tags=["tasks"])
 
 # PATCH で null を受け付けない列（idea_id だけは null で紐づけ解除できる）
-NOT_NULL_FIELDS = {"area", "related", "title", "start_at", "due_at", "priority", "done", "memo"}
+NOT_NULL_FIELDS = {"area", "related", "title", "start_at", "due_at", "priority", "done", "memo", "links"}
+
+
+def _task_from_row(row: sqlite3.Row) -> dict:
+    task = dict(row)
+    # リンクは [{url, label}, ...] を JSON 文字列で保存している
+    task["links"] = json.loads(task["links"])
+    return task
 
 
 def _get_task(conn: sqlite3.Connection, task_id: int) -> dict:
     row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail="タスクが見つかりません")
-    return dict(row)
+    return _task_from_row(row)
 
 
 def _check_idea_exists(conn: sqlite3.Connection, idea_id) -> None:
@@ -38,7 +46,7 @@ def list_tasks(area: str | None = None, conn: sqlite3.Connection = Depends(get_c
         rows = conn.execute("SELECT * FROM tasks WHERE area = ? ORDER BY start_at, id", (area,))
     else:
         rows = conn.execute("SELECT * FROM tasks ORDER BY start_at, id")
-    return [dict(r) for r in rows]
+    return [_task_from_row(r) for r in rows]
 
 
 @router.post("/tasks", response_model=TaskOut, status_code=201)
@@ -48,10 +56,11 @@ def create_task(body: TaskCreate, conn: sqlite3.Connection = Depends(get_conn)):
     now = now_iso()
     cur = conn.execute(
         """INSERT INTO tasks (area, related, title, start_at, due_at, priority, done, idea_id, memo,
-                              today_on, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                              today_on, links, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (body.area, body.related, body.title, body.start_at, body.due_at, body.priority,
-         int(body.done), body.idea_id, body.memo, body.today_on, now, now),
+         int(body.done), body.idea_id, body.memo, body.today_on,
+         json.dumps([link.model_dump() for link in body.links], ensure_ascii=False), now, now),
     )
     conn.commit()
     return _get_task(conn, cur.lastrowid)
@@ -75,6 +84,8 @@ def update_task(task_id: int, body: TaskUpdate, conn: sqlite3.Connection = Depen
         return current
     if "done" in changes:
         changes["done"] = int(changes["done"])
+    if "links" in changes:
+        changes["links"] = json.dumps(changes["links"], ensure_ascii=False)
     changes["updated_at"] = now_iso()
     # 列名は TaskUpdate のフィールド名に限られるので f-string で組み立てても安全
     assignments = ", ".join(f"{name} = ?" for name in changes)
