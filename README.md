@@ -1,21 +1,33 @@
 # Task & Idea Hub
 
-個人用のタスク管理（ガントチャート）・アイディア保管庫・ブレストメモを 1 画面で扱うローカル Web アプリ。
+個人用のタスク管理（ガントチャート）・アイディア保管庫・ブレスト・Markdown メモ帳を扱うローカル Web アプリ。
 
-- 左 2/3: ガントチャート（日・週・月表示、ディシジョンポイント、タスクのメモ）
-- 右 1/3: アイディア保管庫（タグ・検索・タスク化）とブレストメモ
-- 「⚙ 登録」画面: 領域・関連項目・タグの管理
+- TODO: ガントチャート（日・週・月表示、ディシジョンポイント、今日のタスク、リンクリスト、ブレスト）
+- NOTES: Markdown メモ帳（Typora 風の編集、タグ、ピン留め、エクスポート）
+- アイディア: アイディア保管庫（タグ・優先・並べ替え・タスク化）
+- 登録: 領域・関連項目・タグの管理
+- アーカイブ: アーカイブしたアイディア・メモ
 
-## セットアップ
+## Docker で動かす（おすすめ）
+
+```bash
+docker compose up -d
+```
+
+ブラウザで http://localhost:5003 を開く。
+
+- 停止: `docker compose down`
+- アプリを更新したとき（git pull の後など）: `docker compose up -d --build`
+- ログ: `docker compose logs -f`
+- データは `./data/app.db` に保存され、コンテナを作り直しても消えない
+- 標準ではこのパソコンからだけ開ける。社内の他の PC からも使う場合は `docker-compose.yml` の `ports` を `"5003:5003"` に変える
+- Linux で動かす場合、`./data` はコンテナ内のユーザー（UID 1000）が書き込めるようにしておく
+
+## Docker を使わずに動かす
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-```
-
-## 起動
-
-```bash
+.venv/bin/pip install -r requirements-dev.txt
 ./run.sh
 ```
 
@@ -24,7 +36,7 @@ python3 -m venv .venv
 ## データ
 
 - 保存先: `data/app.db`（SQLite）。git 管理外
-- バックアップ: サーバーを止めてから `data/app.db` をコピーする
+- バックアップ: アプリを止めてから `data/app.db` をコピーする
 
 ## テスト
 

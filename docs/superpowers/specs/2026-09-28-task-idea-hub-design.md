@@ -314,3 +314,8 @@ task_management01/
 - `quick_links(id, title, target, position, created_at)`。種類はリンク先から判定: web（http/https）・smb（smb://）・path（`C:\` `C:/` `\\サーバー\` `//サーバー/` `file://`）。それ以外（javascript: など）は 422
 - web は新しいタブで開く。smb はそのまま開く（Mac では Finder）。path はブラウザの制限で開けないため、クリックでパスをクリップボードにコピーし、エクスプローラーや Finder に貼り付けるよう案内する
 - API: `GET/POST /api/links`、`PATCH/DELETE /api/links/{id}`、`POST /api/links/reorder`
+
+### 10.24 Docker
+- `Dockerfile`（python:3.14-slim、TZ=Asia/Tokyo、root 以外の appuser で uvicorn を 5003 番で起動、/api/health でヘルスチェック）
+- `docker-compose.yml`: `127.0.0.1:5003:5003`（このパソコンからのみ）、`./data` を `/app/data` にマウント（既存のデータをそのまま使う）、`restart: unless-stopped`
+- 依存は実行用 `requirements.txt` と開発・テスト用 `requirements-dev.txt` に分けた
