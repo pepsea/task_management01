@@ -329,7 +329,6 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
             el("span", { class: "area-chip", style: `background:${areaColors[task.area] ?? "#9ca3af"}` }, task.area));
           case "related": return el("div", { title: task.related }, task.related);
           case "title": return el("div", { class: "g-title", title: task.memo ? `${task.title}\n\n${task.memo}` : task.title },
-            task.memo ? el("span", { class: "memo-mark", "aria-label": "メモあり" }, "📝") : null,
             linkMark(task.links),
             task.title);
           case "start": return el("div", {}, formatShort(task.start_at));
@@ -345,6 +344,8 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     tasks = nextTasks;
     decisions = nextDecisions;
     root.style.setProperty("--cells-template", visibleColumns().map((c) => `${widthOf(c)}px`).join(" "));
+    // 折りたたみ中は期限の列が見えないので、期限が近い・過ぎたタスク名を赤くする（style.css）
+    root.classList.toggle("details-collapsed", table.collapsed);
     const layout = computeLayout();
     const now = new Date();
     const rows = sortTasks(tasks).map((t) => taskRow(t, layout, now));

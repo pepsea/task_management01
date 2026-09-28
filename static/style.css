@@ -110,7 +110,6 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   display: inline-block; max-width: 100%; padding: 1px 7px; border-radius: 999px; color: #fff;
   font-size: 12px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
 }
-.memo-mark { margin-right: 3px; font-size: 13px; }
 .g-bar { position: absolute; top: 9px; height: 20px; border-radius: 5px; }
 .g-bar.high { background: var(--high); }
 .g-bar.mid { background: var(--mid); }
@@ -125,10 +124,11 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 /* 完了したタスクは行全体の文字・ラベル・印を薄くする */
 .g-row.done .g-cells > * { color: #b4b9c1; }
 .g-row.done .prio { color: #b4b9c1; }
-.g-row.done .area-chip, .g-row.done .memo-mark, .g-row.done .link-mark { opacity: .4; }
+.g-row.done .area-chip, .g-row.done .link-mark { opacity: .4; }
 .g-row.overdue .g-bar { outline: 2px solid var(--danger); outline-offset: 1px; }
 .g-row.overdue .g-due { color: var(--danger); font-weight: 600; }
 .g-row.due-soon .g-due { color: var(--danger); font-weight: 600; }
+.details-collapsed .g-row.overdue .g-title, .details-collapsed .g-row.due-soon .g-title { color: var(--danger); }
 .g-empty { padding: 24px; color: var(--muted); }
 .decision-btn { color: var(--decision); border-color: var(--decision); }
 .g-row.g-decisions { cursor: default; }
