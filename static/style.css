@@ -366,7 +366,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .25); }
 .note-title:hover { border-color: var(--line); }
 .note-title:focus { outline: none; border-color: var(--accent); }
 .notes-list-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-.note-sort-date { font-size: 12px; padding: 3px 10px; color: var(--muted); }
+.notes-list-head .seg button { font-size: 12px; padding: 3px 10px; }
 .idea-title.untitled { color: var(--muted); }
 
 /* アーカイブ（1 行のリスト。クリックで本文を開く） */

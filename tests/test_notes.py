@@ -199,39 +199,3 @@ def test_reorder_notes_rejects_bad_ids(client):
 
 def test_invalid_sort_rejected(client):
     assert client.get("/api/notes", params={"sort": "title"}).status_code == 422
-
-
-def test_sort_by_date_rewrites_manual_order(client):
-    def note(title, day):
-        return client.post("/api/notes", json={"title": title, "note_date": day}).json()["id"]
-
-    a = note("A", "2026-09-01")
-    b = note("B", "2026-10-01")
-    c = note("C", "2026-09-15")
-    client.post("/api/notes/reorder", json={"ids": [a, b, c]})
-    assert titles(client, sort="manual") == ["A", "B", "C"]
-    r = client.post("/api/notes/sort-by-date")
-    assert r.status_code == 204
-    # 日付の新しい順が、そのまま手動の並び順になる
-    assert titles(client, sort="manual") == ["B", "C", "A"]
-    # 並べ直した後もドラッグで動かせる
-    client.post("/api/notes/reorder", json={"ids": [a, b, c]})
-    assert titles(client, sort="manual") == ["A", "B", "C"]
-
-
-def test_sort_by_date_keeps_pinned_first_and_ignores_archived(client):
-    def note(title, day):
-        return client.post("/api/notes", json={"title": title, "note_date": day}).json()["id"]
-
-    old = note("古い★", "2026-01-01")
-    new = note("新しい", "2026-10-01")
-    archived = note("アーカイブ", "2026-12-01")
-    client.patch(f"/api/notes/{old}", json={"pinned": True})
-    client.patch(f"/api/notes/{archived}", json={"archived": True})
-    assert client.post("/api/notes/sort-by-date").status_code == 204
-    assert titles(client, sort="manual") == ["古い★", "新しい"]
-    assert titles(client, archived="true") == ["アーカイブ"]
-
-
-def test_sort_by_date_requires_login(anon_client):
-    assert anon_client.post("/api/notes/sort-by-date").status_code == 401

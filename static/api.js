@@ -51,7 +51,6 @@ export const api = {
   listNotes: (search, tag, archived = false, sort = "") =>
     request("GET", `/api/notes${q({ q: search, tag, archived: archived ? "true" : "", sort })}`),
   reorderNotes: (ids) => request("POST", "/api/notes/reorder", { ids }),
-  sortNotesByDate: () => request("POST", "/api/notes/sort-by-date"),
   getNote: (id) => request("GET", `/api/notes/${id}`),
   createNote: (note) => request("POST", "/api/notes", note),
   updateNote: (id, patch) => request("PATCH", `/api/notes/${id}`, patch),

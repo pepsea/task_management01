@@ -82,20 +82,6 @@ def create_note(body: NoteCreate, conn: sqlite3.Connection = Depends(get_conn)):
     return fetch_note(conn, cur.lastrowid)
 
 
-@router.post("/notes/sort-by-date", status_code=204)
-def sort_notes_by_date(conn: sqlite3.Connection = Depends(get_conn)):
-    """手動の並び順を、メモの日付の新しい順（同じ日付は後から作ったものが上）に並べ直す。"""
-    ids = [
-        r[0]
-        for r in conn.execute(
-            "SELECT id FROM notes WHERE archived_at IS NULL ORDER BY note_date DESC, id DESC"
-        )
-    ]
-    if ids:
-        reorder(conn, "notes", ids, "メモが見つかりません")
-    return Response(status_code=204)
-
-
 @router.post("/notes/reorder", status_code=204)
 def reorder_notes(body: ReorderIn, conn: sqlite3.Connection = Depends(get_conn)):
     reorder(conn, "notes", body.ids, "メモが見つかりません")
