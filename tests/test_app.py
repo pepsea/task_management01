@@ -30,3 +30,19 @@ def test_static_files_are_revalidated(client):
 
 def test_api_is_not_affected_by_static_cache_header(client):
     assert "no-cache" not in client.get("/api/health").headers.get("cache-control", "")
+
+
+def test_admin_page_requires_login(anon_client):
+    anon_client.post("/api/auth/setup", json={"username": "owner", "password": "correct-horse"})
+    r = anon_client.get("/admin.html")
+    assert r.status_code == 200
+    assert "バックアップ" in r.text and "パスワード変更" in r.text and "データのエクスポート" in r.text
+    anon_client.post("/api/auth/logout")
+    r = anon_client.get("/admin.html", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/login.html"
+
+
+def test_settings_page_has_only_masters(client):
+    text = client.get("/settings.html").text
+    assert "領域" in text and "関連項目" in text
+    assert "バックアップ" not in text and "パスワード変更" not in text

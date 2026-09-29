@@ -32,37 +32,6 @@
       <h2>タグ（アイディア・メモ共通）</h2>
       <ul id="tag-list" class="tag-list"></ul>
     </section>
-
-    <section class="settings-card">
-      <h2>バックアップ</h2>
-      <p class="export-note">
-        いつでもバックアップを作れます。作成から 30 日たったバックアップは自動で削除されます。
-        復元すると、すべてのデータ（タスク・アイディア・メモなど）がその時点に戻ります。
-        戻す前の状態も自動でバックアップされるので、やり直せます。ログインのアカウントとパスワードは戻りません。
-      </p>
-      <button id="backup-create" type="button" class="primary backup-create">＋ 今すぐバックアップ</button>
-      <ul id="backup-list" class="backup-list"></ul>
-    </section>
-
-    <section class="settings-card">
-      <h2>データのエクスポート</h2>
-      <p class="export-note">
-        すべてのデータを ZIP でダウンロードします。中身は data.json（すべてのデータ）、
-        tasks.csv・ideas.csv（Excel で開けます）、notes/（メモの Markdown）です。ログインのパスワードは含みません。
-      </p>
-      <a class="button primary export-button" href="/api/export">⬇ すべてのデータをダウンロード（.zip）</a>
-    </section>
-
-    <section class="settings-card">
-      <h2>パスワード変更</h2>
-      <form id="password-form" class="password-form">
-        <label>現在のパスワード<input name="current" type="password" autocomplete="current-password" required></label>
-        <label>新しいパスワード（8 文字以上）<input name="new" type="password" autocomplete="new-password" required minlength="8"></label>
-        <label>新しいパスワード（確認）<input name="confirm" type="password" autocomplete="new-password" required minlength="8"></label>
-        <p id="password-error" class="form-error" role="alert"></p>
-        <button type="submit" class="primary">変更する</button>
-      </form>
-    </section>
   </main>
 
   <div id="toast-area" class="toast-area" aria-live="polite"></div>

@@ -375,3 +375,7 @@ task_management01/
 - 保存先は `data/backups/app-YYYYMMDD-HHMMSS[-before-restore][-N].db`（SQLite のバックアップ機能で丸ごと写す）。作成から 30 日を過ぎたものは、一覧の表示・作成のたびに自動で削除
 - 復元: まず今の状態を「復元前の自動保存」としてバックアップし、バックアップの写しを今の表の形に合わせて（古い版で作ったものでも可）、データの表（領域・関連項目・タグ・アイディア・メモ・タスク・ディシジョン・ブレスト・リンク）の中身を入れ替える。users・sessions（ログイン）は入れ替えない
 - API（要ログイン）: `GET/POST /api/backups`、`POST /api/backups/{name}/restore`、`GET /api/backups/{name}/download`、`DELETE /api/backups/{name}`。名前は決まった形のみ受け付ける
+
+### 10.36 管理タブ
+- バックアップ・データのエクスポート・パスワード変更を登録画面から新しい「管理」タブ（`/admin.html`、`static/admin.js`）に移す。登録画面は領域・関連項目・タグのみ
+- 上部タブ: TODO / NOTES / アイディア / 登録 / アーカイブ / 管理

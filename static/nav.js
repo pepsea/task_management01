@@ -8,6 +8,7 @@ const TABS = [
   { href: "ideas.html", label: "アイディア", paths: ["/ideas.html"] },
   { href: "settings.html", label: "登録", paths: ["/settings.html"] },
   { href: "archive.html", label: "アーカイブ", paths: ["/archive.html"] },
+  { href: "admin.html", label: "管理", paths: ["/admin.html"] },
 ];
 
 const nav = document.getElementById("app-tabs");
