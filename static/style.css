@@ -69,7 +69,7 @@ h2 { font-size: 14px; margin: 0; }
   position: sticky; left: 0; z-index: 1; background: var(--bg);
   border-right: 1px solid var(--line);
 }
-.g-cells > * { padding: 8px 6px; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-cells > * { padding: 4px 6px; font-size: 14px; line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .g-head { position: sticky; top: 0; z-index: 2; background: var(--bg); font-weight: 600; }
 .g-head .g-cells { z-index: 3; }
 .g-head-cell { position: relative; display: flex; align-items: center; gap: 4px; }
@@ -94,9 +94,9 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .g-weekend-band.sun { background: rgba(220, 38, 38, .12); }
 .g-col.is-today { color: var(--accent); font-weight: 700; }
 .g-grid-line { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
-.g-cells > .g-today-cell { padding: 3px 0; text-align: center; overflow: visible; }
+.g-cells > .g-today-cell { padding: 4px 0; text-align: center; overflow: visible; }
 .today-toggle {
-  border: none; background: none; padding: 0 2px; font-size: 17px; line-height: 22px;
+  border: none; background: none; padding: 0 2px; font-size: 15px; line-height: 20px;
   filter: grayscale(1); opacity: .25;
 }
 .today-toggle:hover { background: none; opacity: .6; }
@@ -106,9 +106,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .g-row.today-task .g-title { font-weight: 700; }
 .g-row.today-task .g-bar { box-shadow: 0 0 0 2px var(--today-line); }
 .today-filter.on { background: var(--today-bg); border-color: var(--today-line); font-weight: 600; }
-.g-cells > .g-title-cell { display: flex; flex-direction: column; justify-content: center; gap: 1px; }
-.g-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.g-links { display: flex; gap: 8px; overflow: hidden; }
+/* タスク名とリンクを 1 行に並べる。リンクは右側に小さく、幅の半分まで */
+.g-cells > .g-title-cell { display: flex; align-items: center; gap: 8px; }
+.g-title { flex: 0 1 auto; min-width: 2em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-links { flex: 0 0 auto; max-width: 50%; min-width: 0; display: flex; gap: 6px; overflow: hidden; }
 .g-links a {
   flex: 0 1 auto; min-width: 0; font-size: 11px; line-height: 15px; color: var(--accent); text-decoration: none;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -126,9 +127,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .link-add { align-self: flex-start; font-size: 12px; }
 .area-chip {
   display: inline-block; max-width: 100%; padding: 1px 7px; border-radius: 999px; color: #fff;
-  font-size: 12px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
+  font-size: 12px; line-height: 16px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
 }
-.g-bar { position: absolute; top: 9px; height: 20px; border-radius: 5px; }
+/* 行の高さ（上下 4px + 20px）の中央にバーを置く */
+.g-bar { position: absolute; top: 6px; height: 16px; border-radius: 4px; }
 .g-bar.high { background: var(--high); }
 .g-bar.mid { background: var(--mid); }
 .g-bar.low { background: var(--low); }
