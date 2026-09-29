@@ -1,6 +1,6 @@
 import { api } from "./api.js";
 import { createSortable } from "./sortable.js";
-import { el, toast } from "./ui.js";
+import { copyText, el, toast } from "./ui.js";
 
 // TODO 画面右上のリンクリスト。
 //   web（http/https）: 新しいタブで開く
@@ -42,10 +42,9 @@ function openableHref(link) {
 }
 
 async function copyPath(link) {
-  try {
-    await navigator.clipboard.writeText(link.target);
+  if (await copyText(link.target)) {
     toast("パスをコピーしました。エクスプローラーや Finder のアドレス欄に貼り付けて開いてください");
-  } catch {
+  } else {
     toast(`コピーできませんでした: ${link.target}`);
   }
 }

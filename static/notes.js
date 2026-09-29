@@ -1,7 +1,7 @@
 import { api } from "./api.js";
 import { createBlockEditor } from "./blockEditor.js";
 import { formatDateLabel, formatStamp } from "./dates.js";
-import { exportNote } from "./noteExport.js";
+import { copyNote, exportNote } from "./noteExport.js";
 import { createSortable } from "./sortable.js";
 import { el, tagChip, toast } from "./ui.js";
 
@@ -255,6 +255,14 @@ document.getElementById("note-delete").addEventListener("click", async () => {
 });
 
 document.getElementById("note-close").addEventListener("click", close);
+
+document.getElementById("note-copy").addEventListener("click", () => {
+  if (selectedId === null) return;
+  // 画面に表示中の内容をその場でコピーする（サーバーからの読み込みを待つと、
+  // ブラウザによってはボタンを押した直後の扱いが切れてコピーが許可されないため）
+  copyNote({ title: titleInput.value.trim(), body: editor.value(), note_date: dateInput.value });
+  flushSave();
+});
 
 document.getElementById("note-export").addEventListener("click", async () => {
   if (selectedId === null) return;

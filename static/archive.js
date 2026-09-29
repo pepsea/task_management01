@@ -1,6 +1,6 @@
 import { api } from "./api.js";
 import { formatDateLabel, formatStamp } from "./dates.js";
-import { exportNote } from "./noteExport.js";
+import { copyNote, exportNote } from "./noteExport.js";
 import { el, tagChip, toast } from "./ui.js";
 
 const SEARCH_MS = 300;
@@ -106,6 +106,14 @@ function noteRow(note, html) {
     body,
     dates: `作成 ${formatStamp(note.created_at)} ・ 更新 ${formatStamp(note.updated_at)} ・ アーカイブ ${formatStamp(note.archived_at)}`,
     buttons: [
+      el("button", {
+        type: "button",
+        title: "Markdown の文章をクリップボードにコピー",
+        onclick: (e) => {
+          e.stopPropagation();
+          copyNote(note);
+        },
+      }, "📋"),
       el("button", {
         type: "button",
         title: "Markdown ファイル（.md）として保存",

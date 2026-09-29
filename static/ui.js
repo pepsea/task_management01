@@ -38,3 +38,31 @@ export function isWebUrl(value) {
     return false;
   }
 }
+
+// 文字列をクリップボードにコピーする。成功したら true。
+// navigator.clipboard は https か localhost でしか使えないので（社内サーバーを http で開いた場合など）、
+// 使えないときは選択してコピーする昔からの方法に切り替える
+export async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // 下の方法を試す
+    }
+  }
+  const area = document.createElement("textarea");
+  area.value = text;
+  area.setAttribute("readonly", "");
+  area.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none";
+  document.body.append(area);
+  area.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    ok = false;
+  }
+  area.remove();
+  return ok;
+}
