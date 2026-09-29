@@ -336,9 +336,10 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       const left = first * layout.pxPerDay;
       const width = Math.max((last - first + 1) * layout.pxPerDay, 4);
       track.append(el("div", {
-        class: `g-bar ${task.priority}`,
+        class: "g-bar",
         title: `${task.title}\n${formatShort(task.start_at)} 〜 ${formatShort(task.due_at)}`,
-        style: `left:${left + 1}px;width:${width - 2}px`,
+        // バーの色は領域の色（登録画面で設定）。優先度は「優先」の列の文字色で表す
+        style: `left:${left + 1}px;width:${width - 2}px;background:${areaColors[task.area] ?? "#9ca3af"}`,
       }));
     }
 
@@ -352,12 +353,17 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
           case "area": return el("div", { title: task.area },
             el("span", { class: "area-chip", style: `background:${areaColors[task.area] ?? "#9ca3af"}` }, task.area));
           case "related": return el("div", { title: task.related }, task.related);
-          case "title": return el("div", { class: "g-title-cell" },
-            el("div", { class: "g-title", title: task.memo ? `${task.title}\n\n${task.memo}` : task.title }, task.title),
-            linkList(task.links));
+          case "title": {
+            const links = linkList(task.links);
+            return el("div", { class: `g-title-cell${links ? " has-links" : ""}` },
+              el("div", { class: "g-title", title: task.memo ? `${task.title}\n\n${task.memo}` : task.title }, task.title),
+              links);
+          }
           // 月日だけを表示し、時刻はツールチップで見せる
           case "start": return el("div", { title: formatShort(task.start_at) }, formatMonthDay(task.start_at));
-          case "due": return el("div", { class: "g-due", title: formatShort(task.due_at) }, formatMonthDay(task.due_at));
+          // 期限が迫っている・過ぎたときは、日付を赤い背景の目印にする（style.css の .due-mark）
+          case "due": return el("div", { class: "g-due", title: formatShort(task.due_at) },
+            el("span", { class: "due-mark" }, formatMonthDay(task.due_at)));
           case "prio": return el("div", { class: `prio ${task.priority}` }, PRIORITY_LABEL[task.priority]);
           default: return el("div", {}, checkbox);
         }

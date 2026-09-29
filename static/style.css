@@ -106,12 +106,13 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .g-row.today-task .g-title { font-weight: 700; }
 .g-row.today-task .g-bar { box-shadow: 0 0 0 2px var(--today-line); }
 .today-filter.on { background: var(--today-bg); border-color: var(--today-line); font-weight: 600; }
-/* タスク名とリンクを 1 行に並べる。リンクは右側に小さく、幅の半分まで */
-.g-cells > .g-title-cell { display: flex; align-items: center; gap: 8px; }
-.g-title { flex: 0 1 auto; min-width: 2em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.g-links { flex: 0 0 auto; max-width: 50%; min-width: 0; display: flex; gap: 6px; overflow: hidden; }
+/* タスク名。リンクがあるときだけ 2 行にして、2 行目にリンクを小さく細く並べる */
+.g-cells > .g-title-cell { display: flex; flex-direction: column; justify-content: center; }
+.g-cells > .g-title-cell.has-links { padding-top: 2px; padding-bottom: 2px; }
+.g-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-links { min-width: 0; display: flex; gap: 8px; overflow: hidden; }
 .g-links a {
-  flex: 0 1 auto; min-width: 0; font-size: 11px; line-height: 15px; color: var(--accent); text-decoration: none;
+  flex: 0 1 auto; min-width: 0; font-size: 10px; line-height: 12px; font-weight: 300; color: var(--accent); text-decoration: none;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .g-links a:hover { text-decoration: underline; }
@@ -129,11 +130,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   display: inline-block; max-width: 100%; padding: 1px 7px; border-radius: 999px; color: #fff;
   font-size: 12px; line-height: 16px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
 }
-/* 行の高さ（上下 4px + 20px）の中央にバーを置く */
-.g-bar { position: absolute; top: 6px; height: 16px; border-radius: 4px; }
-.g-bar.high { background: var(--high); }
-.g-bar.mid { background: var(--mid); }
-.g-bar.low { background: var(--low); }
+/* バーは行の上下の中央に置く（リンクがあって 2 行の行でも） */
+.g-bar { position: absolute; top: calc(50% - 8px); height: 16px; border-radius: 4px; }
 .g-today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: .6; }
 .prio { font-weight: 600; }
 .prio.high { color: var(--high); }
@@ -146,8 +144,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .g-row.done .prio { color: #b4b9c1; }
 .g-row.done .area-chip, .g-row.done .g-links a { opacity: .4; }
 .g-row.overdue .g-bar { outline: 2px solid var(--danger); outline-offset: 1px; }
-.g-row.overdue .g-due { color: var(--danger); font-weight: 600; }
-.g-row.due-soon .g-due { color: var(--danger); font-weight: 600; }
+/* 期限: 残り 2 日以内は赤い背景、期限切れはさらに濃い赤の背景（どちらも白い文字） */
+.g-row.due-soon .due-mark, .g-row.overdue .due-mark {
+  display: inline-block; padding: 0 6px; border-radius: 4px; color: #fff; font-weight: 700; line-height: 18px;
+}
+.g-row.due-soon .due-mark { background: #ef4444; }
+.g-row.overdue .due-mark { background: #991b1b; }
 .details-collapsed .g-row.overdue .g-title, .details-collapsed .g-row.due-soon .g-title { color: var(--danger); }
 .g-empty { padding: 24px; color: var(--muted); }
 .decision-btn { color: var(--decision); border-color: var(--decision); }
