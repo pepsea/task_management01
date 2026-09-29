@@ -475,3 +475,14 @@ body.bar-moving, body.bar-moving * { cursor: grabbing !important; }
 .side-toggle:hover { background: #cffafe; }
 .app.side-collapsed .side-toggle { color: #fff; background: #0891b2; }
 .app.side-collapsed .side-toggle:hover { background: #0e7490; }
+
+/* バックアップ（登録画面） */
+.backup-create { align-self: flex-start; }
+.backup-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 320px; overflow: auto; }
+.backup-list li { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+.backup-list li.empty { color: var(--muted); border-bottom: none; }
+.backup-date { font-variant-numeric: tabular-nums; font-weight: 600; }
+.backup-kind { font-size: 11px; padding: 0 6px; border-radius: 999px; background: var(--bg-soft); color: var(--muted); }
+.backup-kind.before-restore { background: #fff4cc; color: #8a6d00; }
+.backup-size { font-size: 11px; color: var(--muted); }
+.backup-list button, .backup-list a.button { font-size: 12px; padding: 2px 8px; }

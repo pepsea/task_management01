@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from app import auth
 from app.db import connect, init_db
 from app.routers import auth as auth_router
-from app.routers import brainstorm, decisions, export, ideas, links, masters, notes, tags, tasks
+from app.routers import backups, brainstorm, decisions, export, ideas, links, masters, notes, tags, tasks
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -78,5 +78,6 @@ app.include_router(masters.router)
 app.include_router(notes.router)
 app.include_router(links.router)
 app.include_router(export.router)
+app.include_router(backups.router)
 # API ルーターはこの行より上で登録する（"/" のマウントは全パスに一致するため最後に置く）
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

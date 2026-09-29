@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import { formatStamp } from "./dates.js";
 import { el, tagChip, toast } from "./ui.js";
 
 // app/colors.py の PALETTE と同じ並び
@@ -139,3 +140,66 @@ passwordForm.addEventListener("submit", async (e) => {
       : err.message;
   }
 });
+
+// バックアップ（作成・一覧・復元・ダウンロード・削除）
+const backupList = document.getElementById("backup-list");
+const BACKUP_KIND = { manual: "手動", "before-restore": "復元前の自動保存" };
+const sizeLabel = (bytes) => (bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`);
+
+async function loadBackups() {
+  try {
+    const items = await api.listBackups();
+    backupList.replaceChildren(...(items.length
+      ? items.map((b) => el("li", {},
+        el("span", { class: "backup-date" }, formatStamp(b.created_at)),
+        el("span", { class: `backup-kind ${b.kind}` }, BACKUP_KIND[b.kind] ?? b.kind),
+        el("span", { class: "backup-size" }, sizeLabel(b.size)),
+        el("span", { class: "spacer" }),
+        el("a", {
+          class: "button backup-download",
+          href: `/api/backups/${encodeURIComponent(b.name)}/download`,
+          title: "バックアップのファイルをダウンロード",
+        }, "⬇"),
+        el("button", {
+          type: "button",
+          onclick: async () => {
+            if (!confirm(`${formatStamp(b.created_at)} のバックアップに戻しますか？\n\nすべてのデータがその時点に戻ります。今の状態は「復元前の自動保存」として残ります。`)) return;
+            try {
+              await api.restoreBackup(b.name);
+              toast("バックアップから復元しました");
+              await Promise.all([load(), loadBackups()]);
+            } catch (err) {
+              toast(err.message);
+            }
+          },
+        }, "復元"),
+        el("button", {
+          type: "button",
+          class: "danger",
+          onclick: async () => {
+            if (!confirm(`${formatStamp(b.created_at)} のバックアップを削除しますか？`)) return;
+            try {
+              await api.deleteBackup(b.name);
+              await loadBackups();
+            } catch (err) {
+              toast(err.message);
+            }
+          },
+        }, "削除")))
+      : [el("li", { class: "empty" }, "バックアップはまだありません")]));
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+document.getElementById("backup-create").addEventListener("click", async () => {
+  try {
+    await api.createBackup();
+    toast("バックアップを作成しました");
+    await loadBackups();
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+loadBackups();
