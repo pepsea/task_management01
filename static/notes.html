@@ -46,11 +46,9 @@
           <button id="note-close" type="button" title="閉じる" aria-label="閉じる">×</button>
         </div>
         <input id="note-title" class="note-title" placeholder="無題" aria-label="タイトル" maxlength="100">
-        <div id="format-bar" class="format-bar" aria-label="書式">
-          <span class="format-hint">文字を選んで：</span>
-          <button type="button" class="format-mark" data-format="mark" title="蛍光ペン（==文==）">🖍 蛍光ペン</button>
+        <div id="format-bar" class="format-bar" aria-label="書式（文字を選んでから押す）">
+          <button type="button" class="format-mark" data-format="mark" title="蛍光ペン" aria-label="蛍光ペン"></button>
           <span class="format-colors" role="group" aria-label="文字の色"></span>
-          <span class="format-note">※ エクスポート・コピーでは色と蛍光ペンは外れます</span>
         </div>
         <div id="note-body" class="md-editor"></div>
         <div class="idea-meta">
