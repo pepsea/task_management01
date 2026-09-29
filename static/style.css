@@ -465,3 +465,9 @@ body.bar-resizing, body.bar-resizing * { cursor: ew-resize !important; user-sele
 /* バー全体はドラッグで移動できる */
 .g-bar { cursor: grab; }
 body.bar-moving, body.bar-moving * { cursor: grabbing !important; }
+
+/* 右側（リンク・ブレスト）をたたんだとき */
+.app.side-collapsed { grid-template-columns: minmax(0, 1fr); }
+.app.side-collapsed .pane-side { display: none; }
+.app.side-collapsed .pane-gantt { border-right: none; }
+.side-toggle { font-size: 12px; color: var(--muted); }

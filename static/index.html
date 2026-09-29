@@ -27,11 +27,13 @@
         <span class="spacer"></span>
         <button id="add-decision" type="button" class="decision-btn">＋ ディシジョン</button>
         <button id="add-task" type="button" class="primary">＋ タスク</button>
+        <button id="side-toggle" type="button" class="side-toggle" aria-controls="side-pane" aria-expanded="true"
+          title="右側のリンク・ブレストをたたむ／開く">リンク・ブレスト ▸</button>
       </header>
       <div id="gantt" class="gantt"></div>
     </section>
 
-    <aside class="pane pane-side">
+    <aside id="side-pane" class="pane pane-side">
       <section class="panel quick-links">
         <header class="panel-head">
           <h2>リンク</h2>

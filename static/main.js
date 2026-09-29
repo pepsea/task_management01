@@ -120,6 +120,33 @@ function setScale(scale) {
   rangeLabel.textContent = gantt.rangeLabel();
 }
 
+// 右側（リンク・ブレスト）の開け閉め。たたむとガントが横幅いっぱいに広がる。状態はブラウザに覚えておく
+const SIDE_STORAGE_KEY = "todo.sideCollapsed";
+const appLayout = document.querySelector(".app");
+const sideToggle = document.getElementById("side-toggle");
+
+function setSideCollapsed(collapsed) {
+  appLayout.classList.toggle("side-collapsed", collapsed);
+  sideToggle.textContent = collapsed ? "◂ リンク・ブレスト" : "リンク・ブレスト ▸";
+  sideToggle.setAttribute("aria-expanded", String(!collapsed));
+  try {
+    localStorage.setItem(SIDE_STORAGE_KEY, collapsed ? "1" : "0");
+  } catch {
+    // 保存できない環境ではその場だけ
+  }
+  // ガントの幅が変わるので、表示する日数を計算し直す
+  renderGantt();
+}
+
+let sideCollapsed = false;
+try {
+  sideCollapsed = localStorage.getItem(SIDE_STORAGE_KEY) === "1";
+} catch {
+  // 保存できない環境では開いた状態
+}
+setSideCollapsed(sideCollapsed);
+sideToggle.addEventListener("click", () => setSideCollapsed(!appLayout.classList.contains("side-collapsed")));
+
 areaFilter.addEventListener("change", loadTasks);
 todayFilter.addEventListener("click", () => {
   todayOnly = !todayOnly;
