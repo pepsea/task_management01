@@ -29,6 +29,14 @@ passwordForm.addEventListener("submit", async (e) => {
 // バックアップ（作成・一覧・復元・ダウンロード・削除）
 const backupList = document.getElementById("backup-list");
 const BACKUP_KIND = { manual: "手動", "before-restore": "復元前の自動保存" };
+// 入力された日付がバックアップの日付と同じか。「9/29」「09/29」「2026/9/29」「2026-09-29」、全角数字も可
+function matchesDate(input, date) {
+  const parts = input.normalize("NFKC").trim().split(/[/\-.年月日\s]+/).filter(Boolean).map(Number);
+  if (parts.some(Number.isNaN)) return false;
+  const [year, month, day] = parts.length === 3 ? parts : parts.length === 2 ? [date.getFullYear(), ...parts] : [];
+  return year === date.getFullYear() && month === date.getMonth() + 1 && day === date.getDate();
+}
+
 const sizeLabel = (bytes) => (bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`);
 
 async function loadBackups() {
@@ -62,13 +70,15 @@ async function loadBackups() {
           type: "button",
           class: "danger",
           onclick: async () => {
-            // うっかり消さないよう、「削除」と入力してもらう
+            // うっかり消さないよう、そのバックアップの日付を入力してもらう
+            const created = new Date(b.created_at);
+            const dateLabel = `${created.getMonth() + 1}/${created.getDate()}`;
             const answer = prompt(
-              `${formatStamp(b.created_at)} のバックアップを削除します。削除すると元に戻せません。\n\n削除する場合は「削除」と入力してください。`,
+              `${formatStamp(b.created_at)} のバックアップを削除します。削除すると元に戻せません。\n\n削除する場合は、このバックアップの日付「${dateLabel}」を入力してください。`,
             );
             if (answer === null) return;
-            if (answer.trim() !== "削除") {
-              toast("入力が「削除」と一致しないため、削除しませんでした");
+            if (!matchesDate(answer, created)) {
+              toast(`入力が日付「${dateLabel}」と一致しないため、削除しませんでした`);
               return;
             }
             try {
