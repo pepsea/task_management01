@@ -119,9 +119,14 @@ def test_restore_old_schema_backup(client, tmp_path):
     assert task["title"] == "古いタスク" and task["memo"] == "" and task["links"] == []
 
 
-def test_delete_backup(client, tmp_path):
+def test_delete_backup_requires_confirmation(client, tmp_path):
     b = create(client)
-    assert client.delete(f"/api/backups/{b['name']}").status_code == 204
+    # 確認（消すバックアップの名前）が無い・違うときは消さない
+    assert client.delete(f"/api/backups/{b['name']}").status_code == 400
+    assert client.delete(f"/api/backups/{b['name']}", params={"confirm": "違う名前.db"}).status_code == 400
+    assert (backup_dir(tmp_path) / b["name"]).exists()
+    r = client.delete(f"/api/backups/{b['name']}", params={"confirm": b["name"]})
+    assert r.status_code == 204
     assert backups(client) == []
     assert not (backup_dir(tmp_path) / b["name"]).exists()
 
@@ -139,7 +144,7 @@ def test_invalid_or_missing_names_are_rejected(client, tmp_path, name):
     # 「../」を含む名前は URL の段階で別のパスになり、バックアップの処理まで届かない（404 または 405）
     rejected = {404, 405}
     assert client.post(f"/api/backups/{name}/restore").status_code in rejected
-    assert client.delete(f"/api/backups/{name}").status_code in rejected
+    assert client.delete(f"/api/backups/{name}", params={"confirm": name}).status_code in rejected
     download = client.get(f"/api/backups/{name}/download")
     assert download.status_code in rejected
     assert not download.content.startswith(b"SQLite format 3")

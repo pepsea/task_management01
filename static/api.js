@@ -62,7 +62,9 @@ export const api = {
   listBackups: () => request("GET", "/api/backups"),
   createBackup: () => request("POST", "/api/backups"),
   restoreBackup: (name) => request("POST", `/api/backups/${encodeURIComponent(name)}/restore`),
-  deleteBackup: (name) => request("DELETE", `/api/backups/${encodeURIComponent(name)}`),
+  // 誤って消さないよう、確認として同じ名前を confirm に付ける（サーバー側で照合）
+  deleteBackup: (name) =>
+    request("DELETE", `/api/backups/${encodeURIComponent(name)}?confirm=${encodeURIComponent(name)}`),
   listLinks: () => request("GET", "/api/links"),
   createLink: (link) => request("POST", "/api/links", link),
   updateLink: (id, patch) => request("PATCH", `/api/links/${id}`, patch),

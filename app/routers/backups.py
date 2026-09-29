@@ -35,6 +35,10 @@ def download_backup(name: str):
 
 
 @router.delete("/{name}", status_code=204)
-def delete_backup(name: str):
-    _existing(name).unlink()
+def delete_backup(name: str, confirm: str = ""):
+    """誤って消さないよう、確認として消すバックアップの名前（?confirm=名前）が必要。"""
+    path = _existing(name)
+    if confirm != name:
+        raise HTTPException(status_code=400, detail="削除するには確認が必要です")
+    path.unlink()
     return Response(status_code=204)

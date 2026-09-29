@@ -62,7 +62,15 @@ async function loadBackups() {
           type: "button",
           class: "danger",
           onclick: async () => {
-            if (!confirm(`${formatStamp(b.created_at)} のバックアップを削除しますか？`)) return;
+            // うっかり消さないよう、「削除」と入力してもらう
+            const answer = prompt(
+              `${formatStamp(b.created_at)} のバックアップを削除します。削除すると元に戻せません。\n\n削除する場合は「削除」と入力してください。`,
+            );
+            if (answer === null) return;
+            if (answer.trim() !== "削除") {
+              toast("入力が「削除」と一致しないため、削除しませんでした");
+              return;
+            }
             try {
               await api.deleteBackup(b.name);
               await loadBackups();
