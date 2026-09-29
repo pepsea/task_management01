@@ -56,6 +56,12 @@ const sortable = createSortable({
     } catch (err) {
       toast(err.message);
     }
+    // 日付順のまま並べ替えることはできないので、ドラッグしたら「手動」に切り替える
+    if (sortMode !== "manual") {
+      toast("並び順を「手動」に切り替えました（「日付順」に戻すと日付の新しい順になります）");
+      setSortMode("manual");
+      return;
+    }
     await refresh();
   },
 });
@@ -74,10 +80,10 @@ function renderList() {
   list.replaceChildren(...notes.map((note) =>
     el("li", {
       class: `${note.id === selectedId ? "selected" : ""}${note.pinned ? " prioritized" : ""}`,
-      ...(sortMode === "manual" ? sortable(note) : {}),
+      ...sortable(note),
       onclick: () => (note.id === selectedId ? close() : select(note.id)),
     },
-      sortMode === "manual" ? el("span", { class: "drag-handle", title: "ドラッグで並べ替え", "aria-hidden": "true" }, "⋮⋮") : null,
+      el("span", { class: "drag-handle", title: "ドラッグで並べ替え", "aria-hidden": "true" }, "⋮⋮"),
       el("button", {
         type: "button",
         class: `star${note.pinned ? " on" : ""}`,
@@ -270,16 +276,18 @@ titleInput.addEventListener("keydown", (e) => {
   }
 });
 
+function setSortMode(mode) {
+  sortMode = mode;
+  try {
+    localStorage.setItem(SORT_STORAGE_KEY, sortMode);
+  } catch {
+    // 保存できない環境ではその場だけ
+  }
+  refresh();
+}
+
 for (const button of sortButtons) {
-  button.addEventListener("click", () => {
-    sortMode = button.dataset.sort;
-    try {
-      localStorage.setItem(SORT_STORAGE_KEY, sortMode);
-    } catch {
-      // 保存できない環境ではその場だけ
-    }
-    refresh();
-  });
+  button.addEventListener("click", () => setSortMode(button.dataset.sort));
 }
 
 dateInput.addEventListener("change", async () => {
