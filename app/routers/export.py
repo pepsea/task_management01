@@ -11,6 +11,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Response
 
 from app.db import get_conn
+from app.markdown_portable import to_portable_markdown
 from app.routers.tags import tags_by_item
 
 router = APIRouter(prefix="/api", tags=["export"])
@@ -81,9 +82,10 @@ def _safe_filename(text: str) -> str:
 
 
 def note_markdown(note: dict) -> str:
-    """画面の「⬇ エクスポート」と同じ形: 「# タイトル」の下に本文（本文が同じ見出しで始まるなら本文のみ）。"""
+    """画面の「⬇ エクスポート」と同じ形: 「# タイトル」の下に本文（本文が同じ見出しで始まるなら本文のみ）。
+    このアプリだけの書き方（蛍光ペン・文字色）は取り除く。"""
     title = note["title"] or "無題"
-    body = note["body"].strip()
+    body = to_portable_markdown(note["body"]).strip()
     first_line = body.split("\n", 1)[0].strip()
     return f"{body}\n" if first_line == f"# {title}" else f"# {title}\n\n{body}\n"
 

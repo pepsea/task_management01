@@ -10,6 +10,7 @@ from markdown.inlinepatterns import SimpleTagInlineProcessor
 ALLOWED_TAGS = {
     "h1", "h2", "h3", "h4", "h5", "h6", "p", "br", "hr", "strong", "em", "del", "code", "pre",
     "blockquote", "ul", "ol", "li", "a", "img", "table", "thead", "tbody", "tr", "th", "td", "input",
+    "mark", "span",
 }
 ALLOWED_ATTRIBUTES = {
     "a": {"href", "title"},
@@ -19,6 +20,8 @@ ALLOWED_ATTRIBUTES = {
     "input": {"type", "checked", "disabled"},
     "th": {"align", "style"},
     "td": {"align", "style"},
+    # 文字色（<span style="color:…">）。style は color だけ残す（nh3 の filter_style_properties）
+    "span": {"style"},
 }
 
 # 「- [ ] 」「- [x] 」の項目をチェックボックスにする（ゆるいリストの <li><p> にも対応）
@@ -112,6 +115,15 @@ class StrikethroughExtension(Extension):
         md.inlinePatterns.register(SimpleTagInlineProcessor(r"(~{2})(.+?)~{2}", "del"), "del", 175)
 
 
+class HighlightExtension(Extension):
+    """==text== を <mark>（蛍光ペン）にする。「a == b」のように内側が空白なら何もしない。"""
+
+    def extendMarkdown(self, md):
+        md.inlinePatterns.register(
+            SimpleTagInlineProcessor(r"(={2})(?=\S)(.+?)(?<=\S)={2}", "mark"), "mark", 174
+        )
+
+
 def _task_item(match: re.Match) -> str:
     checked = " checked" if match.group(2) in ("x", "X") else ""
     return f'<li class="task-item">{match.group(1) or ""}<input type="checkbox" disabled{checked}> '
@@ -122,7 +134,7 @@ def render_markdown(text: str) -> str:
         return ""
     # 変換器は状態を持つので、呼び出しごとに作る
     converter = markdown.Markdown(
-        extensions=["tables", "fenced_code", "sane_lists", "nl2br", StrikethroughExtension()],
+        extensions=["tables", "fenced_code", "sane_lists", "nl2br", StrikethroughExtension(), HighlightExtension()],
     )
     html = TASK_ITEM.sub(_task_item, converter.convert(_separate_blocks(_normalize_list_indent(text))))
     return nh3.clean(
@@ -130,5 +142,6 @@ def render_markdown(text: str) -> str:
         tags=ALLOWED_TAGS,
         attributes=ALLOWED_ATTRIBUTES,
         url_schemes={"http", "https", "mailto"},
+        filter_style_properties={"color"},
         link_rel="noopener noreferrer",
     )

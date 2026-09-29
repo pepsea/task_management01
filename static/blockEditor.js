@@ -304,6 +304,17 @@ export function createBlockEditor(root, { onInput }) {
   }
 
   return {
+    // 編集中のブロックで選んでいる文字を before / after で囲む。囲めたら true
+    // （編集中でない・文字を選んでいないときは false）
+    wrapSelection(before, after) {
+      if (!textarea) return false;
+      const { selectionStart: start, selectionEnd: end, value: text } = textarea;
+      if (start === end) return false;
+      textarea.setRangeText(`${before}${text.slice(start, end)}${after}`, start, end, "select");
+      textarea.focus();
+      onTextInput();
+      return true;
+    },
     // 表示するメモを入れ替える（編集中の内容は破棄）
     setValue(text) {
       editingId = null;

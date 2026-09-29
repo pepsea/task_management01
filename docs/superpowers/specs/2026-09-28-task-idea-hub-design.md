@@ -390,3 +390,9 @@ task_management01/
 ### 10.38 メモのコピー
 - NOTES の編集欄の「📋 コピー」とアーカイブのメモ行の「📋」で、メモの Markdown（エクスポートと同じ中身）をクリップボードにコピーする
 - コピーは `static/ui.js` の `copyText`: https / localhost では Clipboard API、http で社内サーバーを開いた場合など使えないときは textarea を選択して `execCommand("copy")` に切り替える（リンクリストのパスのコピーも同じ処理に変更）
+
+### 10.39 蛍光ペンと文字の色（NOTES）
+- 蛍光ペン `==文==` → `<mark>`（内側の先頭・末尾が空白なら対象外、コードの中は対象外）
+- 文字色 `<span style="color:…">文</span>`。表示時は nh3 で span の style を color だけに絞る
+- 編集欄の書式バー: 「🖍 蛍光ペン」と 5 色（赤・青・緑・橙・紫）。編集中のブロックで選んだ文字を囲む。選んでいなければ案内を表示
+- どのアプリでも読める Markdown にするため、画面のエクスポート・コピーと全データ ZIP の notes/*.md では、蛍光ペンと文字色の書き方を取り除き中の文章だけ残す（`app/markdown_portable.py` と `static/noteExport.js` の同じ処理。コードの中は変えない）。data.json は書いたとおり残す

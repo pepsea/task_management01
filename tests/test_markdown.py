@@ -96,3 +96,33 @@ def test_list_right_after_paragraph():
 def test_pipes_inside_code_block_are_not_a_table():
     html = render_markdown("```\n| a | b |\n|---|---|\n```")
     assert "<table>" not in html
+
+
+def test_highlight():
+    assert "<mark>大事</mark>" in render_markdown("これは ==大事== な文")
+
+
+def test_equals_with_spaces_is_not_highlight():
+    html = render_markdown("a == b == c")
+    assert "<mark>" not in html
+
+
+def test_highlight_is_not_applied_in_code():
+    html = render_markdown("`==x==`\n\n```\n==y==\n```")
+    assert "<mark>" not in html
+    assert "==x==" in html and "==y==" in html
+
+
+def test_color_span_keeps_only_color():
+    html = render_markdown('<span style="color:#dc2626">赤い文</span>')
+    assert '<span style="color:#dc2626">赤い文</span>' in html
+
+
+def test_color_span_other_styles_and_attributes_are_removed():
+    html = render_markdown('<span style="color:red;position:fixed;background:url(x)" onclick="alert(1)">x</span>')
+    assert "position" not in html and "background" not in html and "onclick" not in html
+    assert "color:red" in html
+
+
+def test_markdown_inside_color_span():
+    assert "<strong>太字</strong>" in render_markdown('<span style="color:blue">**太字**</span>')

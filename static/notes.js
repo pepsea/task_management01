@@ -275,6 +275,39 @@ document.getElementById("note-export").addEventListener("click", async () => {
   }
 });
 
+// 書式ボタン（文字を選んでから押す）。蛍光ペンは ==文==、文字色は <span style="color:…">文</span>
+const TEXT_COLORS = [
+  { name: "赤", value: "#dc2626" },
+  { name: "青", value: "#2563eb" },
+  { name: "緑", value: "#16a34a" },
+  { name: "橙", value: "#d97706" },
+  { name: "紫", value: "#7c3aed" },
+];
+const formatBar = document.getElementById("format-bar");
+formatBar.querySelector(".format-colors").replaceChildren(...TEXT_COLORS.map((color) => el("button", {
+  type: "button",
+  class: "format-color",
+  "data-format": "color",
+  "data-color": color.value,
+  title: `文字を${color.name}にする`,
+  "aria-label": `文字を${color.name}にする`,
+  style: `background:${color.value}`,
+})));
+// ボタンを押しても編集中のブロックからフォーカスを外さない（外れると選んだ文字が分からなくなる）
+formatBar.addEventListener("mousedown", (e) => {
+  if (e.target.closest("button")) e.preventDefault();
+});
+formatBar.addEventListener("click", (e) => {
+  const button = e.target.closest("button[data-format]");
+  if (!button) return;
+  const [before, after] = button.dataset.format === "mark"
+    ? ["==", "=="]
+    : [`<span style="color:${button.dataset.color}">`, "</span>"];
+  if (!editor.wrapSelection(before, after)) {
+    toast("本文のブロックをクリックして編集し、色を付けたい文字を選んでから押してください");
+  }
+});
+
 titleInput.addEventListener("input", scheduleSave);
 titleInput.addEventListener("keydown", (e) => {
   // タイトルで Enter を押したら本文を書き始める

@@ -487,3 +487,13 @@ body.bar-moving, body.bar-moving * { cursor: grabbing !important; }
 .backup-kind.before-restore { background: #fff4cc; color: #8a6d00; }
 .backup-size { font-size: 11px; color: var(--muted); }
 .backup-list button, .backup-list a.button { font-size: 12px; padding: 2px 8px; }
+
+/* NOTES の書式ボタン（蛍光ペン・文字色） */
+.format-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--muted); }
+.format-bar button { font-size: 12px; padding: 2px 8px; }
+.format-mark { background: #fff59d; border-color: #e6d44a; }
+.format-colors { display: inline-flex; gap: 4px; }
+.format-color { width: 20px; height: 20px; padding: 0 !important; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+.format-color:hover { box-shadow: 0 0 0 2px var(--text); }
+.format-note { font-size: 11px; }
+:is(.md-block, .md-view) mark { background: #fff59d; color: inherit; padding: 0 2px; border-radius: 2px; }
