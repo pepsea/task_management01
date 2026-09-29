@@ -19,18 +19,8 @@ const tagChips = document.getElementById("note-tags");
 const tagInput = document.getElementById("note-tag-input");
 const dateInput = document.getElementById("note-date");
 const titleInput = document.getElementById("note-title");
-const sortButtons = document.querySelectorAll("[data-sort]");
-const SORT_STORAGE_KEY = "notes.sort";
 
 const titleOf = (note) => note.title || "無題";
-
-// 並び順（date: 日付順 / manual: ドラッグで決めた順）。ブラウザに覚えておく
-let sortMode = "date";
-try {
-  sortMode = localStorage.getItem(SORT_STORAGE_KEY) === "manual" ? "manual" : "date";
-} catch {
-  // 保存できない環境では日付順
-}
 
 let notes = [];
 let selectedId = null;
@@ -55,12 +45,6 @@ const sortable = createSortable({
       await api.reorderNotes(ids);
     } catch (err) {
       toast(err.message);
-    }
-    // 日付順のまま並べ替えることはできないので、ドラッグしたら「手動」に切り替える
-    if (sortMode !== "manual") {
-      toast("並び順を「手動」に切り替えました（「日付順」に戻すと日付の新しい順になります）");
-      setSortMode("manual");
-      return;
     }
     await refresh();
   },
@@ -113,8 +97,8 @@ async function loadTags() {
 async function refresh() {
   try {
     await loadTags();
-    for (const button of sortButtons) button.classList.toggle("active", button.dataset.sort === sortMode);
-    notes = await api.listNotes(search.value.trim(), tagFilter.value, false, sortMode);
+    // 一覧はいつもドラッグで決めた順（★ は先頭）
+    notes = await api.listNotes(search.value.trim(), tagFilter.value, false, "manual");
     renderList();
   } catch (err) {
     toast(err.message);
@@ -317,19 +301,17 @@ titleInput.addEventListener("keydown", (e) => {
   }
 });
 
-function setSortMode(mode) {
-  sortMode = mode;
+// 今の並び順を、日付の新しい順に並べ直す（押したときだけ）
+document.getElementById("note-sort-date").addEventListener("click", async () => {
+  if (!confirm("メモの並び順を、日付の新しい順に並べ直しますか？\n（ドラッグで決めた並び順は置き換わります）")) return;
   try {
-    localStorage.setItem(SORT_STORAGE_KEY, sortMode);
-  } catch {
-    // 保存できない環境ではその場だけ
+    await api.sortNotesByDate();
+    await refresh();
+    toast("日付の新しい順に並べ直しました");
+  } catch (err) {
+    toast(err.message);
   }
-  refresh();
-}
-
-for (const button of sortButtons) {
-  button.addEventListener("click", () => setSortMode(button.dataset.sort));
-}
+});
 
 dateInput.addEventListener("change", async () => {
   if (selectedId === null) return;
