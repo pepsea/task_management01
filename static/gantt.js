@@ -1,4 +1,4 @@
-import { addDays, dayDiff, formatMonthDay, formatShort, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek, todayKey } from "./dates.js";
+import { addDays, dayDiff, formatMonthDay, formatShort, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek, toInputValue, todayKey } from "./dates.js";
 import { el, isWebUrl } from "./ui.js";
 
 // 1 列の単位ごとの設定。表示する列数は空き幅に minColWidth の列が何本入るかで決め、
@@ -123,7 +123,7 @@ function sortTasks(tasks) {
   );
 }
 
-export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditDecision, onRendered }) {
+export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditDecision, onResizeTask, onRendered }) {
   let scale = "day";
   let anchor = startOfDay(new Date());
   let tasks = [];
@@ -303,6 +303,60 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
   }
 
 
+  // バーの端のドラッグで開始日・期限を 1 日単位で変える。
+  // ドラッグ直後に行のクリック（編集ダイアログ）が発生しないよう、少しの間クリックを無視する
+  let ignoreClickUntil = 0;
+
+  function startBarResize(e, task, edge, layout, bar) {
+    e.preventDefault();
+    e.stopPropagation();
+    const field = edge === "start" ? "start_at" : "due_at";
+    const original = parseDateTime(task[field]);
+    const startX = e.clientX;
+    const origLeft = parseFloat(bar.style.left);
+    const origWidth = parseFloat(bar.style.width);
+    // 期限が開始より前にならない範囲（日数）を求める
+    const spanDays = dayDiff(parseDateTime(task.start_at), parseDateTime(task.due_at));
+    const fits = (d) => (edge === "start"
+      ? toInputValue(addDays(original, d)) <= task.due_at
+      : toInputValue(addDays(original, d)) >= task.start_at);
+    const limit = edge === "start" ? (fits(spanDays) ? spanDays : spanDays - 1) : (fits(-spanDays) ? -spanDays : -spanDays + 1);
+    const tip = el("span", { class: "g-bar-tip" });
+    bar.append(tip);
+    bar.classList.add("resizing");
+    document.body.classList.add("bar-resizing");
+    let days = 0;
+
+    const move = (ev) => {
+      let d = Math.round((ev.clientX - startX) / layout.pxPerDay);
+      d = edge === "start" ? Math.min(d, limit) : Math.max(d, limit);
+      days = d;
+      const px = d * layout.pxPerDay;
+      if (edge === "start") {
+        bar.style.left = `${origLeft + px}px`;
+        bar.style.width = `${origWidth - px}px`;
+      } else {
+        bar.style.width = `${origWidth + px}px`;
+      }
+      tip.textContent = `${edge === "start" ? "開始" : "期限"} ${formatMonthDay(toInputValue(addDays(original, d)))}`;
+    };
+    const up = () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      document.body.classList.remove("bar-resizing");
+      ignoreClickUntil = Date.now() + 300;
+      if (days === 0) {
+        tip.remove();
+        bar.classList.remove("resizing");
+        return;
+      }
+      onResizeTask(task, field, toInputValue(addDays(original, days)));
+    };
+    move(e);
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  }
+
   function taskRow(task, layout, now) {
     const due = parseDateTime(task.due_at);
     const overdue = !task.done && due < now;
@@ -330,22 +384,45 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     const track = el("div", { class: "g-track", style: `width:${layout.width}px` },
       gridLines(layout), markers(layout));
     // バーは開始日の頭から期限日の終わりまで。表示期間の外は切り取る
-    const first = Math.max(layout.dayIndex(parseDateTime(task.start_at)), 0);
-    const last = Math.min(layout.dayIndex(due), layout.totalDays - 1);
+    const startIndex = layout.dayIndex(parseDateTime(task.start_at));
+    const dueIndex = layout.dayIndex(due);
+    const first = Math.max(startIndex, 0);
+    const last = Math.min(dueIndex, layout.totalDays - 1);
     if (first <= last) {
       const left = first * layout.pxPerDay;
       const width = Math.max((last - first + 1) * layout.pxPerDay, 4);
-      track.append(el("div", {
+      const bar = el("div", {
         class: "g-bar",
-        title: `${task.title}\n${formatShort(task.start_at)} 〜 ${formatShort(task.due_at)}`,
+        title: `${task.title}\n${formatShort(task.start_at)} 〜 ${formatShort(task.due_at)}\n（両端をドラッグで開始・期限を変更）`,
         // バーの色は領域の色（登録画面で設定）。優先度は「優先」の列の文字色で表す
         style: `left:${left + 1}px;width:${width - 2}px;background:${areaColors[task.area] ?? "#9ca3af"}`,
-      }));
+      });
+      // 表示期間の外まで続いている側の端は見えていないので、つかめないようにする
+      if (startIndex >= 0) {
+        bar.append(el("span", {
+          class: "g-bar-handle start",
+          title: "ドラッグで開始日を変更",
+          onmousedown: (e) => startBarResize(e, task, "start", layout, bar),
+          onclick: (e) => e.stopPropagation(),
+        }));
+      }
+      if (dueIndex <= layout.totalDays - 1) {
+        bar.append(el("span", {
+          class: "g-bar-handle end",
+          title: "ドラッグで期限を変更",
+          onmousedown: (e) => startBarResize(e, task, "end", layout, bar),
+          onclick: (e) => e.stopPropagation(),
+        }));
+      }
+      track.append(bar);
     }
 
     return el("div", {
       class: `g-row${task.done ? " done" : ""}${overdue ? " overdue" : ""}${dueSoon ? " due-soon" : ""}${isToday ? " today-task" : ""}`,
-      onclick: () => onEdit(task),
+      onclick: () => {
+        if (Date.now() < ignoreClickUntil) return;
+        onEdit(task);
+      },
     },
       el("div", { class: "g-cells" }, visibleColumns().map((column) => {
         switch (column.key) {
@@ -402,7 +479,14 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
   let resizeTimer = null;
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => render(), 100);
+    resizeTimer = setTimeout(function redraw() {
+      // バーのドラッグ中に描き直すとドラッグが消えるので、終わるまで待つ
+      if (document.body.classList.contains("bar-resizing")) {
+        resizeTimer = setTimeout(redraw, 200);
+        return;
+      }
+      render();
+    }, 100);
   });
 
   return {

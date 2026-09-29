@@ -446,3 +446,18 @@ a.button.primary:hover { opacity: .9; }
 
 /* 日付の列が細いとき（狭い画面）は見出しの文字を小さくする */
 .narrow-cols .g-col { font-size: 11px; letter-spacing: -.5px; }
+
+/* バーの両端のつまみ（ドラッグで開始日・期限を 1 日単位で変更） */
+.g-bar-handle { position: absolute; top: 0; bottom: 0; width: 7px; cursor: ew-resize; }
+.g-bar-handle.start { left: -2px; border-radius: 4px 0 0 4px; }
+.g-bar-handle.end { right: -2px; border-radius: 0 4px 4px 0; }
+.g-bar:hover .g-bar-handle, .g-bar.resizing .g-bar-handle { background: rgba(0, 0, 0, .25); }
+.g-bar.resizing { opacity: .85; z-index: 2; }
+.g-bar-tip {
+  position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%);
+  background: var(--text); color: #fff; font-size: 11px; line-height: 16px; padding: 1px 6px; border-radius: 4px;
+  white-space: nowrap; pointer-events: none;
+}
+body.bar-resizing, body.bar-resizing * { cursor: ew-resize !important; user-select: none; }
+/* ドラッグ中の行だけ、バーの上の日付表示が切れないようにはみ出しを許す */
+.g-track:has(.g-bar.resizing) { overflow: visible; z-index: 3; }

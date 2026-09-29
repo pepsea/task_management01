@@ -31,6 +31,14 @@ const gantt = createGantt(document.getElementById("gantt"), {
     }
     await loadTasks();
   },
+  onResizeTask: async (task, field, value) => {
+    try {
+      await api.updateTask(task.id, { [field]: value });
+    } catch (err) {
+      toast(err.message);
+    }
+    await loadTasks();
+  },
   onEditDecision: (decision) => decisionForm.open({ decision }),
   onRendered: () => {
     rangeLabel.textContent = gantt.rangeLabel();
