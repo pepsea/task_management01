@@ -104,7 +104,8 @@ function weekendOf(date) {
 }
 
 // 並び順: 今日のタスク → その他の未完了 → 完了（完了は今日のタスクでも一番下）。
-// それぞれの中は優先度の高い順（高 → 中 → 低）、同じ優先度は締切の早い順、同じ締切は開始の早い順
+// それぞれの中は期限の日付の早い順、同じ日付は優先度の高い順（高 → 中 → 低）、
+// 同じ優先度は期限の時刻の早い順、それも同じなら開始の早い順
 const PRIORITY_ORDER = { high: 0, mid: 1, low: 2 };
 
 function sortRank(task, today) {
@@ -116,6 +117,7 @@ function sortTasks(tasks) {
   const today = todayKey();
   return [...tasks].sort(
     (a, b) => sortRank(a, today) - sortRank(b, today)
+      || a.due_at.slice(0, 10).localeCompare(b.due_at.slice(0, 10))
       || PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
       || a.due_at.localeCompare(b.due_at)
       || a.start_at.localeCompare(b.start_at)
@@ -123,7 +125,7 @@ function sortTasks(tasks) {
   );
 }
 
-export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditDecision, onResizeTask, onRendered }) {
+export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditDecision, onChangeDates, onRendered }) {
   let scale = "day";
   let anchor = startOfDay(new Date());
   let tasks = [];
@@ -303,15 +305,18 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
   }
 
 
-  // バーの端のドラッグで開始日・期限を 1 日単位で変える。
+  // バーのドラッグで開始日・期限を 1 日単位で変える（時刻はそのまま）。
+  //   edge = "start": 左端で開始日 / "end": 右端で期限 / "move": バー全体で両方をずらす（期間の長さは同じ）
   // ドラッグ直後に行のクリック（編集ダイアログ）が発生しないよう、少しの間クリックを無視する
   let ignoreClickUntil = 0;
 
-  function startBarResize(e, task, edge, layout, bar) {
+  function startBarDrag(e, task, edge, layout, bar) {
+    if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
-    const field = edge === "start" ? "start_at" : "due_at";
-    const original = parseDateTime(task[field]);
+    const start = parseDateTime(task.start_at);
+    const due = parseDateTime(task.due_at);
+    const original = edge === "start" ? start : due;
     const startX = e.clientX;
     const origLeft = parseFloat(bar.style.left);
     const origWidth = parseFloat(bar.style.width);
@@ -321,38 +326,52 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       ? toInputValue(addDays(original, d)) <= task.due_at
       : toInputValue(addDays(original, d)) >= task.start_at);
     const limit = edge === "start" ? (fits(spanDays) ? spanDays : spanDays - 1) : (fits(-spanDays) ? -spanDays : -spanDays + 1);
+    const label = (d) => {
+      if (edge === "move") {
+        return `${formatMonthDay(toInputValue(addDays(start, d)))} 〜 ${formatMonthDay(toInputValue(addDays(due, d)))}`;
+      }
+      return `${edge === "start" ? "開始" : "期限"} ${formatMonthDay(toInputValue(addDays(original, d)))}`;
+    };
     const tip = el("span", { class: "g-bar-tip" });
     bar.append(tip);
     bar.classList.add("resizing");
     document.body.classList.add("bar-resizing");
+    if (edge === "move") document.body.classList.add("bar-moving");
     let days = 0;
 
     const move = (ev) => {
       let d = Math.round((ev.clientX - startX) / layout.pxPerDay);
-      d = edge === "start" ? Math.min(d, limit) : Math.max(d, limit);
+      if (edge === "start") d = Math.min(d, limit);
+      if (edge === "end") d = Math.max(d, limit);
       days = d;
       const px = d * layout.pxPerDay;
       if (edge === "start") {
         bar.style.left = `${origLeft + px}px`;
         bar.style.width = `${origWidth - px}px`;
-      } else {
+      } else if (edge === "end") {
         bar.style.width = `${origWidth + px}px`;
+      } else {
+        bar.style.left = `${origLeft + px}px`;
       }
-      tip.textContent = `${edge === "start" ? "開始" : "期限"} ${formatMonthDay(toInputValue(addDays(original, d)))}`;
+      tip.textContent = label(d);
     };
     const up = () => {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
-      document.body.classList.remove("bar-resizing");
-      ignoreClickUntil = Date.now() + 300;
+      document.body.classList.remove("bar-resizing", "bar-moving");
       if (days === 0) {
+        // 動かさなかった（ただのクリック）なら、そのまま行のクリック（編集ダイアログ）に任せる
         tip.remove();
         bar.classList.remove("resizing");
         return;
       }
-      onResizeTask(task, field, toInputValue(addDays(original, days)));
+      ignoreClickUntil = Date.now() + 300;
+      const patch = {};
+      if (edge !== "end") patch.start_at = toInputValue(addDays(start, days));
+      if (edge !== "start") patch.due_at = toInputValue(addDays(due, days));
+      onChangeDates(task, patch);
     };
-    move(e);
+    tip.textContent = label(0);
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", up);
   }
@@ -393,7 +412,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       const width = Math.max((last - first + 1) * layout.pxPerDay, 4);
       const bar = el("div", {
         class: "g-bar",
-        title: `${task.title}\n${formatShort(task.start_at)} 〜 ${formatShort(task.due_at)}\n（両端をドラッグで開始・期限を変更）`,
+        title: `${task.title}\n${formatShort(task.start_at)} 〜 ${formatShort(task.due_at)}\n（ドラッグで移動、両端のドラッグで開始・期限を変更）`,
         // バーの色は領域の色（登録画面で設定）。優先度は「優先」の列の文字色で表す
         style: `left:${left + 1}px;width:${width - 2}px;background:${areaColors[task.area] ?? "#9ca3af"}`,
       });
@@ -402,7 +421,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
         bar.append(el("span", {
           class: "g-bar-handle start",
           title: "ドラッグで開始日を変更",
-          onmousedown: (e) => startBarResize(e, task, "start", layout, bar),
+          onmousedown: (e) => startBarDrag(e, task, "start", layout, bar),
           onclick: (e) => e.stopPropagation(),
         }));
       }
@@ -410,10 +429,11 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
         bar.append(el("span", {
           class: "g-bar-handle end",
           title: "ドラッグで期限を変更",
-          onmousedown: (e) => startBarResize(e, task, "end", layout, bar),
+          onmousedown: (e) => startBarDrag(e, task, "end", layout, bar),
           onclick: (e) => e.stopPropagation(),
         }));
       }
+      bar.addEventListener("mousedown", (e) => startBarDrag(e, task, "move", layout, bar));
       track.append(bar);
     }
 

@@ -461,3 +461,7 @@ a.button.primary:hover { opacity: .9; }
 body.bar-resizing, body.bar-resizing * { cursor: ew-resize !important; user-select: none; }
 /* ドラッグ中の行だけ、バーの上の日付表示が切れないようにはみ出しを許す */
 .g-track:has(.g-bar.resizing) { overflow: visible; z-index: 3; }
+
+/* バー全体はドラッグで移動できる */
+.g-bar { cursor: grab; }
+body.bar-moving, body.bar-moving * { cursor: grabbing !important; }

@@ -31,9 +31,9 @@ const gantt = createGantt(document.getElementById("gantt"), {
     }
     await loadTasks();
   },
-  onResizeTask: async (task, field, value) => {
+  onChangeDates: async (task, patch) => {
     try {
-      await api.updateTask(task.id, { [field]: value });
+      await api.updateTask(task.id, patch);
     } catch (err) {
       toast(err.message);
     }
