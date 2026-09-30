@@ -2,7 +2,7 @@ import { api } from "./api.js";
 import { formatStamp } from "./dates.js";
 import { el, saveZoom, savedZoom, toast, ZOOM_CHOICES } from "./ui.js";
 
-// 管理画面: 表示・バックアップ・データのエクスポート（リンクのみ）・パスワード変更
+// SETTING/DATA 画面: 表示・バックアップ・データのエクスポート（リンクのみ）・パスワード変更
 
 // 画面の大きさ（このブラウザに保存）
 const zoomSelect = document.getElementById("zoom-select");

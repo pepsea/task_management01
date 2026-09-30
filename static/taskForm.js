@@ -99,7 +99,7 @@ export function initTaskForm({ onSaved }) {
     linkList.replaceChildren(...(values.links ?? []).map(linkRow));
     heading.textContent = task ? "タスクを編集" : "タスクを追加";
     deleteButton.hidden = !task;
-    errorBox.textContent = areaNames.length ? "" : "領域が未登録です。先に「⚙ 登録」画面で領域を登録してください";
+    errorBox.textContent = areaNames.length ? "" : "領域が未登録です。先に REGISTRATION タブで領域を登録してください";
     dialog.showModal();
     field(values.area ? "title" : "area").focus();
   }

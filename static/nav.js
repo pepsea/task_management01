@@ -1,17 +1,17 @@
 import { api } from "./api.js";
 import { applyZoom, el, toast } from "./ui.js";
 
-// 管理タブで選んだ表示倍率を反映する
+// SETTING/DATA タブで選んだ表示倍率を反映する
 applyZoom();
 
 // 全ページ共通の上部タブ
 const TABS = [
   { href: "./", label: "TODO", paths: ["/", "/index.html"] },
+  { href: "ideas.html", label: "IDEA", paths: ["/ideas.html"] },
   { href: "notes.html", label: "NOTES", paths: ["/notes.html"] },
-  { href: "ideas.html", label: "アイディア", paths: ["/ideas.html"] },
-  { href: "settings.html", label: "登録", paths: ["/settings.html"] },
-  { href: "archive.html", label: "アーカイブ", paths: ["/archive.html"] },
-  { href: "admin.html", label: "管理", paths: ["/admin.html"] },
+  { href: "settings.html", label: "REGISTRATION", paths: ["/settings.html"] },
+  { href: "archive.html", label: "ARCHIVE", paths: ["/archive.html"] },
+  { href: "admin.html", label: "SETTING/DATA", paths: ["/admin.html"] },
 ];
 
 const nav = document.getElementById("app-tabs");
