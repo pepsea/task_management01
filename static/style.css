@@ -13,6 +13,8 @@
   --low: #9ca3af;
   --danger: #b91c1c;
   --decision: #7c3aed;
+  --tab-active: #15803d;
+  --tab-active-hover: #166534;
   --day-w: 40px;
   /* Mac・Windows・Linux それぞれで見やすい日本語フォントを使う
      （Mac: ヒラギノ／Windows: Segoe UI + 游ゴシック UI・メイリオ／Linux: Noto Sans CJK） */
@@ -306,7 +308,9 @@ dialog::backdrop { background: rgba(0, 0, 0, .25); }
   border: 1px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; margin-bottom: -1px;
 }
 .app-tab:hover { color: var(--text); background: var(--bg); }
-.app-tab.active { color: var(--text); background: var(--bg); border-color: var(--line); }
+/* 選択中のタブは緑で目立たせる */
+.app-tab.active { color: #fff; background: var(--tab-active); border-color: var(--tab-active); }
+.app-tab.active:hover { background: var(--tab-active-hover); }
 
 /* NOTES（Markdown メモ帳） */
 .notes-layout { grid-template-columns: minmax(240px, 1fr) minmax(0, 3fr); }
