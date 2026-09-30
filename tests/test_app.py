@@ -10,7 +10,7 @@ def test_health(client):
 def test_index_is_served(client):
     r = client.get("/")
     assert r.status_code == 200
-    assert "Task &amp; Idea Hub" in r.text
+    assert "<title>Task</title>" in r.text
 
 
 def test_schema_is_created(client, tmp_path):
