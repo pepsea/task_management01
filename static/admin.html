@@ -3,13 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>管理 | Task &amp; Idea Hub</title>
+  <title>Task</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="settings-page">
   <nav id="app-tabs" class="app-tabs"></nav>
 
   <main class="settings">
+    <section class="settings-card">
+      <h2>表示</h2>
+      <label class="zoom-setting">画面の大きさ
+        <select id="zoom-select" aria-label="画面の大きさ"></select>
+      </label>
+      <p class="export-note">このブラウザだけの設定です。Windows で文字が大きく見えるときは 80〜90% に下げてください。</p>
+    </section>
     <section class="settings-card">
       <h2>バックアップ</h2>
       <p class="export-note">

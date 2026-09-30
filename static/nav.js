@@ -1,5 +1,8 @@
 import { api } from "./api.js";
-import { el, toast } from "./ui.js";
+import { applyZoom, el, toast } from "./ui.js";
+
+// 管理タブで選んだ表示倍率を反映する
+applyZoom();
 
 // 全ページ共通の上部タブ
 const TABS = [

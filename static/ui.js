@@ -66,3 +66,33 @@ export async function copyText(text) {
   area.remove();
   return ok;
 }
+
+// 画面の表示倍率（％）。Windows の表示スケール（125%・150% など）で文字が大きく見えるときに下げる。
+// ブラウザごとに保存するので、Mac と Windows で別の倍率にできる
+export const ZOOM_CHOICES = [70, 80, 90, 100, 110, 120];
+const ZOOM_STORAGE_KEY = "ui.zoom";
+
+export function savedZoom() {
+  try {
+    const value = Number(localStorage.getItem(ZOOM_STORAGE_KEY));
+    return ZOOM_CHOICES.includes(value) ? value : 100;
+  } catch {
+    return 100;
+  }
+}
+
+export function applyZoom(percent = savedZoom()) {
+  document.documentElement.style.zoom = percent === 100 ? "" : String(percent / 100);
+}
+
+export function saveZoom(percent) {
+  try {
+    localStorage.setItem(ZOOM_STORAGE_KEY, String(percent));
+  } catch {
+    // 保存できない環境ではその場だけ
+  }
+  applyZoom(percent);
+}
+
+// マウスの移動量（画面上の px）をページ内の px に直すための倍率
+export const pageZoom = () => Number(document.documentElement.style.zoom) || 1;

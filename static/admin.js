@@ -1,8 +1,14 @@
 import { api } from "./api.js";
 import { formatStamp } from "./dates.js";
-import { el, toast } from "./ui.js";
+import { el, saveZoom, savedZoom, toast, ZOOM_CHOICES } from "./ui.js";
 
-// 管理画面: バックアップ・データのエクスポート（リンクのみ）・パスワード変更
+// 管理画面: 表示・バックアップ・データのエクスポート（リンクのみ）・パスワード変更
+
+// 画面の大きさ（このブラウザに保存）
+const zoomSelect = document.getElementById("zoom-select");
+zoomSelect.replaceChildren(...ZOOM_CHOICES.map((z) => el("option", { value: z }, `${z}%`)));
+zoomSelect.value = String(savedZoom());
+zoomSelect.addEventListener("change", () => saveZoom(Number(zoomSelect.value)));
 
 // パスワード変更（変更すると、このブラウザ以外のログインは解除される）
 const passwordForm = document.getElementById("password-form");

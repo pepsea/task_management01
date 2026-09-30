@@ -1,5 +1,5 @@
 import { addDays, dayDiff, formatMonthDay, formatShort, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek, toInputValue, todayKey } from "./dates.js";
-import { el, isWebUrl } from "./ui.js";
+import { el, isWebUrl, pageZoom } from "./ui.js";
 
 // 1 列の単位ごとの設定。表示する列数は空き幅に minColWidth の列が何本入るかで決め、
 // minCount〜maxCount に収める（入りきらないときは横スクロール）。
@@ -145,7 +145,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     const startWidth = widthOf(column);
     let frame = null;
     const move = (ev) => {
-      table.widths[column.key] = Math.max(MIN_COLUMN_WIDTH, Math.round(startWidth + ev.clientX - startX));
+      table.widths[column.key] = Math.max(MIN_COLUMN_WIDTH, Math.round(startWidth + (ev.clientX - startX) / pageZoom()));
       if (!frame) {
         frame = requestAnimationFrame(() => {
           frame = null;
@@ -340,7 +340,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     let days = 0;
 
     const move = (ev) => {
-      let d = Math.round((ev.clientX - startX) / layout.pxPerDay);
+      let d = Math.round((ev.clientX - startX) / pageZoom() / layout.pxPerDay);
       if (edge === "start") d = Math.min(d, limit);
       if (edge === "end") d = Math.max(d, limit);
       days = d;
