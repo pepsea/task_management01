@@ -1,4 +1,4 @@
-import { addDays, dayDiff, formatMonthDay, formatShort, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek, toInputValue, todayKey } from "./dates.js";
+import { addDays, dayDiff, formatMonthDay, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek, toInputValue, todayKey } from "./dates.js";
 import { el, isWebUrl, pageZoom } from "./ui.js";
 
 // 1 列の単位ごとの設定。表示する列数は空き幅に minColWidth の列が何本入るかで決め、
@@ -412,7 +412,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       const width = Math.max((last - first + 1) * layout.pxPerDay, 4);
       const bar = el("div", {
         class: "g-bar",
-        title: `${task.title}\n${formatShort(task.start_at)} 〜 ${formatShort(task.due_at)}\n（ドラッグで移動、両端のドラッグで開始・期限を変更）`,
+        title: `${task.title}\n${formatMonthDay(task.start_at)} 〜 ${formatMonthDay(task.due_at)}\n（ドラッグで移動、両端のドラッグで開始・期限を変更）`,
         // バーの色は領域の色（登録画面で設定）。優先度は「優先」の列の文字色で表す
         style: `left:${left + 1}px;width:${width - 2}px;background:${areaColors[task.area] ?? "#9ca3af"}`,
       });
@@ -456,10 +456,10 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
               el("div", { class: "g-title", title: task.memo ? `${task.title}\n\n${task.memo}` : task.title }, task.title),
               links);
           }
-          // 月日だけを表示し、時刻はツールチップで見せる
-          case "start": return el("div", { title: formatShort(task.start_at) }, formatMonthDay(task.start_at));
+          // 開始・期限は月日だけを表示する
+          case "start": return el("div", {}, formatMonthDay(task.start_at));
           // 期限が迫っている・過ぎたときは、日付を赤い背景の目印にする（style.css の .due-mark）
-          case "due": return el("div", { class: "g-due", title: formatShort(task.due_at) },
+          case "due": return el("div", { class: "g-due" },
             el("span", { class: "due-mark" }, formatMonthDay(task.due_at)));
           case "prio": return el("div", { class: `prio ${task.priority}` }, PRIORITY_LABEL[task.priority]);
           default: return el("div", {}, checkbox);

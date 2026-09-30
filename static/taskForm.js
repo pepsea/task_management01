@@ -89,9 +89,12 @@ export function initTaskForm({ onSaved }) {
     };
     fillAreaOptions(values.area);
     fillRelatedOptions(values.related);
-    for (const name of ["title", "start_at", "due_at", "priority", "memo"]) {
+    for (const name of ["title", "priority", "memo"]) {
       field(name).value = values[name] ?? "";
     }
+    // 入力は日付だけ（時刻は保存済みのものをそのまま使う）
+    field("start_at").value = values.start_at.slice(0, 10);
+    field("due_at").value = values.due_at.slice(0, 10);
     field("done").checked = Boolean(values.done);
     linkList.replaceChildren(...(values.links ?? []).map(linkRow));
     heading.textContent = task ? "タスクを編集" : "タスクを追加";
@@ -101,13 +104,16 @@ export function initTaskForm({ onSaved }) {
     field(values.area ? "title" : "area").focus();
   }
 
+  // 日付に時刻を付ける。編集中は元の時刻、新規は開始 9:00・期限 18:00
+  const withTime = (name, time) => `${field(name).value}${editing ? editing[name].slice(10) : time}`;
+
   function readForm() {
     return {
       area: field("area").value.trim(),
       related: field("related").value.trim(),
       title: field("title").value.trim(),
-      start_at: field("start_at").value,
-      due_at: field("due_at").value,
+      start_at: withTime("start_at", "T09:00"),
+      due_at: withTime("due_at", "T18:00"),
       priority: field("priority").value,
       done: field("done").checked,
       memo: field("memo").value,
@@ -127,8 +133,8 @@ export function initTaskForm({ onSaved }) {
       errorBox.textContent = `リンクは http:// または https:// で始まる URL にしてください（${badLink.url}）`;
       return;
     }
-    if (payload.due_at < payload.start_at) {
-      errorBox.textContent = "期限は開始日時以降にしてください";
+    if (payload.due_at.slice(0, 10) < payload.start_at.slice(0, 10)) {
+      errorBox.textContent = "期限は開始日以降にしてください";
       return;
     }
     try {

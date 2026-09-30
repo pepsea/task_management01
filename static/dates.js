@@ -36,11 +36,6 @@ export function formatMonthDay(s) {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
-export function formatShort(s) {
-  const d = parseDateTime(s);
-  return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 // サーバーの ISO 日時（秒・マイクロ秒付き）を「2026/9/28 21:14」形式にする。今年なら年を省く
 export function formatStamp(iso) {
   const d = new Date(iso);
