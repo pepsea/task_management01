@@ -11,6 +11,10 @@
   <div class="app">
     <section class="pane pane-gantt">
       <header class="toolbar">
+        <button id="add-task" type="button" class="primary">＋ タスク</button>
+        <button id="add-decision" type="button" class="decision-btn">＋ ディシジョン</button>
+        <button id="side-toggle" type="button" class="side-toggle" aria-controls="side-pane" aria-expanded="true"
+          title="右側のリンク・ブレストをたたむ／開く">リンク・ブレスト ▸</button>
         <select id="area-filter" aria-label="領域で絞り込み">
           <option value="">すべての領域</option>
         </select>
@@ -24,11 +28,6 @@
         <button id="next" type="button" aria-label="次へ">▶</button>
         <span id="range-label" class="range-label"></span>
         <button id="today-filter" type="button" class="today-filter" aria-pressed="false" title="今日のタスクだけを表示">☀ 今日 <span id="today-count">0</span></button>
-        <span class="spacer"></span>
-        <button id="add-decision" type="button" class="decision-btn">＋ ディシジョン</button>
-        <button id="add-task" type="button" class="primary">＋ タスク</button>
-        <button id="side-toggle" type="button" class="side-toggle" aria-controls="side-pane" aria-expanded="true"
-          title="右側のリンク・ブレストをたたむ／開く">リンク・ブレスト ▸</button>
       </header>
       <div id="gantt" class="gantt"></div>
     </section>
