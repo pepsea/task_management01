@@ -105,14 +105,13 @@ function weekendOf(date) {
   return date.getDay() === 6 ? "sat" : "sun";
 }
 
-// 並び順: 今日のタスク → その他の未完了 → 完了（完了は今日のタスクでも一番下）。
-// それぞれの中は期限の日付の早い順、同じ日付は優先度の高い順（高 → 中 → 低）、
-// 同じ優先度は期限の時刻の早い順、それも同じなら開始の早い順
+// 並び順のまとまり: 今日のタスク → 実施中（開始日が今日以前） → まだ始まっていない → 完了（今日のタスクでも一番下）
 const PRIORITY_ORDER = { high: 0, mid: 1, low: 2 };
 
 function sortRank(task, today) {
-  if (task.done) return 2;
-  return task.today_on === today ? 0 : 1;
+  if (task.done) return 3;
+  if (task.today_on === today) return 0;
+  return task.start_at.slice(0, 10) <= today ? 1 : 2;
 }
 
 // 見出しをクリックしたときの並べ替え（昇順の比べ方。降順はこの逆）。空の関連項目は昇順で最後に回す
@@ -129,7 +128,7 @@ const COLUMN_SORTS = {
   done: (a, b) => a.done - b.done,
 };
 
-// 標準の並び: 今日のタスク → 未完了 → 完了、その中は期限の近い順 → 優先度の高い順 → 登録の古い順。
+// 標準の並び: 今日のタスク → 実施中 → まだ始まっていない → 完了、その中は期限の近い順 → 優先度の高い順 → 登録の古い順。
 // sort（{ key, dir }）があれば、その列の順を先にして、同じものは標準の並びにする。
 // どの並べ替えでも、完了したタスクは一番下にまとめる
 function sortTasks(tasks, sort) {
@@ -230,7 +229,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       type: "button",
       class: `g-head-label${sorted ? " sorted" : ""}`,
       title: sorted === "asc" ? "クリックで逆順に並べ替え"
-        : sorted === "desc" ? "クリックで標準の並び（今日 → 期限 → 優先度 → 登録、完了は下）に戻す"
+        : sorted === "desc" ? "クリックで標準の並び（今日 → 実施中 → 期限 → 優先度 → 登録、完了は下）に戻す"
           : `クリックで「${column.label}」の順に並べ替え`,
       onclick: () => toggleSort(column),
     }, column.label, sorted ? el("span", { class: "sort-mark" }, sorted === "asc" ? "▲" : "▼") : null);
