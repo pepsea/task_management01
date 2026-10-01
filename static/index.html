@@ -14,8 +14,6 @@
         <button id="add-task" type="button" class="primary">＋ タスク</button>
         <button id="add-recurring" type="button" class="recurring-btn" title="毎月○日・毎月第○○曜日・毎週○曜日のタスク">＋ 定期タスク</button>
         <button id="add-decision" type="button" class="decision-btn">＋ ディシジョン</button>
-        <button id="side-toggle" type="button" class="side-toggle" aria-controls="side-pane" aria-expanded="true"
-          title="右側のリンク・ブレストをたたむ／開く">リンク・ブレスト ▸</button>
         <button id="today-filter" type="button" class="today-filter" aria-pressed="false" title="今日のタスクだけを表示">☀ 今日 <span id="today-count">0</span></button>
         <input id="task-search" class="task-search" type="search" placeholder="検索" aria-label="タスクを検索"
           title="タスク名・領域・関連項目・メモ・リンクで絞り込み">
@@ -31,6 +29,9 @@
       <div id="gantt" class="gantt"></div>
     </section>
 
+    <!-- リンク・ブレストの左端の細い帯。クリックで右側をたたむ／開く -->
+    <button id="side-toggle" type="button" class="side-handle" aria-controls="side-pane" aria-expanded="true"
+      title="リンク・ブレストをたたむ"><span class="side-handle-arrow">▶</span><span class="side-handle-label">リンク・ブレスト</span></button>
     <aside id="side-pane" class="pane pane-side">
       <section class="panel quick-links">
         <header class="panel-head">

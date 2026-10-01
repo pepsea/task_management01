@@ -124,7 +124,8 @@ const sideToggle = document.getElementById("side-toggle");
 
 function setSideCollapsed(collapsed) {
   appLayout.classList.toggle("side-collapsed", collapsed);
-  sideToggle.textContent = collapsed ? "◂ リンク・ブレスト" : "リンク・ブレスト ▸";
+  sideToggle.querySelector(".side-handle-arrow").textContent = collapsed ? "◀" : "▶";
+  sideToggle.title = collapsed ? "リンク・ブレストを開く" : "リンク・ブレストをたたむ";
   sideToggle.setAttribute("aria-expanded", String(!collapsed));
   try {
     localStorage.setItem(SIDE_STORAGE_KEY, collapsed ? "1" : "0");
