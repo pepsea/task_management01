@@ -1,4 +1,4 @@
-import { addDays, dayDiff, formatMonthDay, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek, toInputValue, todayKey } from "./dates.js";
+import { addDays, dayDiff, formatMonthDay, formatStamp, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek, toInputValue, todayKey } from "./dates.js";
 import { el, isWebUrl, pageZoom } from "./ui.js";
 
 // 1 列の単位ごとの設定。表示する列数は空き幅に minColWidth の列が何本入るかで決め、
@@ -11,12 +11,13 @@ const SCALES = {
   week: { minCount: 8, maxCount: 13, minColWidth: 36, nominalDays: 7 },
   month: { minCount: 6, maxCount: 12, minColWidth: 44, nominalDays: 30 },
 };
-// 左の表の列。width は初期幅（px）。detail の列は「開始・期限・優先・完了」としてまとめて折りたためる。
+// 左の表の列。width は初期幅（px）。detail の列は「登録・開始・期限・優先・完了」としてまとめて折りたためる。
 // 見出しの右端をドラッグすると幅を変えられ、幅と折りたたみの状態はブラウザ（localStorage）に保存する
 const TABLE_COLUMNS = [
   { key: "today", label: "☀", width: 32, resizable: false },
   { key: "related", label: "関連項目", width: 100 },
   { key: "title", label: "タスク名", width: 240 },
+  { key: "created", label: "登録", width: 60, detail: true },
   { key: "start", label: "開始", width: 60, detail: true },
   { key: "due", label: "期限", width: 60, detail: true },
   { key: "prio", label: "優先", width: 42, detail: true },
@@ -44,7 +45,7 @@ function saveTableSettings(settings) {
 // ディシジョン名 1 件ぶんのおおよその表示幅（重なり判定用）と 1 段の高さ
 const DECISION_LABEL_WIDTH = 122;
 const DECISION_LANE_HEIGHT = 20;
-const DECISION_LANES = 2;
+const DECISION_LANES = 1;
 const DUE_SOON_DAYS = 2;
 const PRIORITY_LABEL = { high: "高", mid: "中", low: "低" };
 
@@ -120,6 +121,8 @@ const COLUMN_SORTS = {
   today: (a, b, today) => (b.today_on === today) - (a.today_on === today),
   related: (a, b) => textOrder(a.related, b.related),
   title: (a, b) => textOrder(a.title, b.title),
+  // 登録日は表示は日付だけだが、並べ替えは時刻まで見る
+  created: (a, b) => a.created_at.localeCompare(b.created_at),
   start: (a, b) => a.start_at.slice(0, 10).localeCompare(b.start_at.slice(0, 10)),
   due: (a, b) => a.due_at.slice(0, 10).localeCompare(b.due_at.slice(0, 10)),
   prio: (a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority],
@@ -209,7 +212,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       ? el("button", {
         type: "button",
         class: "collapse-toggle",
-        title: table.collapsed ? "開始・期限・優先・完了を表示する" : "開始・期限・優先・完了を折りたたむ",
+        title: table.collapsed ? "登録・開始・期限・優先・完了を表示する" : "登録・開始・期限・優先・完了を折りたたむ",
         onclick: toggleDetails,
       }, table.collapsed ? "▸ 詳細" : "◂")
       : null;
@@ -311,8 +314,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       .map((d) => ({ d, index: layout.dayIndex(parseDate(d.date)) }))
       .filter(({ index }) => layout.inRange(index))
       .sort((a, b) => a.index - b.index || (a.d.time ?? "").localeCompare(b.d.time ?? ""));
-    // 行の高さは 2 段で固定。1 件ずつ、名前が重ならない上の段に置き、同じ日や近い日付は 2 段目へ。
-    // 2 段とも埋まっているときは、空くのが早い方の段に重ねて置く（◆ にマウスを乗せると名前が見える）
+    // 行の高さは DECISION_LANES 段で固定（今は 1 段）。名前が重なるときは重ねて置く（◆ にマウスを乗せると名前が見える）
     const laneEnds = Array(DECISION_LANES).fill(-Infinity);
     const placed = visible.map(({ d, index }) => {
       const left = centerOf(index, layout);
@@ -497,6 +499,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
               links);
           }
           // 開始・期限は月日だけを表示する
+          case "created": return el("div", { title: `登録 ${formatStamp(task.created_at)}` }, formatMonthDay(task.created_at));
           case "start": return el("div", {}, formatMonthDay(task.start_at));
           // 期限が迫っている・過ぎたときは、日付を赤い背景の目印にする（style.css の .due-mark）
           case "due": return el("div", { class: "g-due" },
