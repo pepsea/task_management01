@@ -44,6 +44,7 @@ function saveTableSettings(settings) {
 // ディシジョン名 1 件ぶんのおおよその表示幅（重なり判定用）と 1 段の高さ
 const DECISION_LABEL_WIDTH = 122;
 const DECISION_LANE_HEIGHT = 20;
+const DECISION_LANES = 2;
 const DUE_SOON_DAYS = 2;
 const PRIORITY_LABEL = { high: "高", mid: "中", low: "低" };
 
@@ -276,16 +277,17 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       .map((d) => ({ d, index: layout.dayIndex(parseDate(d.date)) }))
       .filter(({ index }) => layout.inRange(index))
       .sort((a, b) => a.index - b.index || (a.d.time ?? "").localeCompare(b.d.time ?? ""));
-    // 1 件ずつ、名前が重ならない一番上の段に置く。同じ日の複数件や近い日付は下の段に縦に並ぶ
-    const laneEnds = [];
+    // 行の高さは 2 段で固定。1 件ずつ、名前が重ならない上の段に置き、同じ日や近い日付は 2 段目へ。
+    // 2 段とも埋まっているときは、空くのが早い方の段に重ねて置く（◆ にマウスを乗せると名前が見える）
+    const laneEnds = Array(DECISION_LANES).fill(-Infinity);
     const placed = visible.map(({ d, index }) => {
       const left = centerOf(index, layout);
       let lane = laneEnds.findIndex((end) => left - 7 >= end);
-      if (lane === -1) lane = laneEnds.push(0) - 1;
+      if (lane === -1) lane = laneEnds.indexOf(Math.min(...laneEnds));
       laneEnds[lane] = left - 7 + DECISION_LABEL_WIDTH;
       return { d, left, lane };
     });
-    const lanes = Math.max(laneEnds.length, 1);
+    const lanes = DECISION_LANES;
     const track = el("div", {
       class: "g-track g-decision-track",
       style: `width:${layout.width}px;height:${lanes * DECISION_LANE_HEIGHT + 6}px`,
