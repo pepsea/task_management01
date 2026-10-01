@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 -- 定期タスク（繰り返しのひな形）。回ごとに普通のタスクを作る
 --   rule: monthly_day（毎月 day 日）/ monthly_weekday（毎月 第 nth weekday 曜日、nth=5 は最終）/ weekly（毎週 weekday 曜日）
---   weekday は 0=月 … 6=日。繰り返しの日を期限にし、lead_days 日前を開始にする
+--   weekday は 0=月 … 6=日。繰り返しの日を期限にし、土日を除いて lead_days 日前を開始にする
 --   generated_until: この日までの回は作成済み（NULL ならまだ作っていない）
 CREATE TABLE IF NOT EXISTS recurring_tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

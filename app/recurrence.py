@@ -50,6 +50,15 @@ def occurrences(rule: dict, start: date, end: date) -> list[date]:
     return days
 
 
+def business_days_before(day: date, count: int) -> date:
+    """day から土日を除いて count 日さかのぼった日。"""
+    while count > 0:
+        day -= timedelta(days=1)
+        if day.weekday() < 5:
+            count -= 1
+    return day
+
+
 def generate(conn: sqlite3.Connection, today: date | None = None) -> None:
     """定期タスクごとに、まだ作っていない回（今日から LOOKAHEAD_DAYS 日先まで）をタスクとして作る。
     初めて作るときは、開始日と今日の遅い方からにする（過去の回をさかのぼって作らない）。"""
@@ -71,7 +80,8 @@ def generate(conn: sqlite3.Connection, today: date | None = None) -> None:
         for due in occurrences(rule, begin, end):
             if due.isoformat() in existing:
                 continue
-            start = due - timedelta(days=rule["lead_days"])
+            # 開始は期限から土日を除いて lead_days 日前
+            start = business_days_before(due, rule["lead_days"])
             conn.execute(
                 """INSERT INTO tasks (area, related, title, start_at, due_at, priority, done, memo, links,
                                       recurring_id, created_at, updated_at)

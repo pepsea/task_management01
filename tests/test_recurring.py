@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 import pytest
 
 from app.db import db_path
-from app.recurrence import LOOKAHEAD_DAYS, generate, occurrences
+from app.recurrence import LOOKAHEAD_DAYS, business_days_before, generate, occurrences
 from tests.conftest import register
 
 
@@ -57,6 +57,14 @@ def test_weekly():
         date(2026, 10, 5), date(2026, 10, 12), date(2026, 10, 19)]
 
 
+def test_business_days_before_skips_weekends():
+    # 2026/10/13（火）の 3 営業日前は 10/8（木）。土日（10/10・11）は数えない
+    assert business_days_before(date(2026, 10, 13), 3) == date(2026, 10, 8)
+    # 月曜の 1 営業日前は前の金曜
+    assert business_days_before(date(2026, 10, 12), 1) == date(2026, 10, 9)
+    assert business_days_before(date(2026, 10, 13), 0) == date(2026, 10, 13)
+
+
 def test_occurrences_respect_range_edges():
     rule = {"rule": "monthly_day", "day": 10}
     assert occurrences(rule, date(2026, 10, 10), date(2026, 11, 10)) == [date(2026, 10, 10), date(2026, 11, 10)]
@@ -74,7 +82,7 @@ def test_create_generates_upcoming_tasks(client):
     expected = occurrences(rec, date.today(), date.today() + timedelta(days=LOOKAHEAD_DAYS))
     assert [t["due_at"] for t in tasks] == [f"{d.isoformat()}T18:00" for d in expected]
     first = tasks[0]
-    assert first["start_at"] == f"{(expected[0] - timedelta(days=2)).isoformat()}T09:00"
+    assert first["start_at"] == f"{business_days_before(expected[0], 2).isoformat()}T09:00"
     assert (first["title"], first["area"], first["related"], first["priority"]) == ("月次報告", "仕事", "PJ-A", "high")
 
 
