@@ -129,7 +129,7 @@ const COLUMN_SORTS = {
   done: (a, b) => a.done - b.done,
 };
 
-// 標準の並び: 今日のタスク → 未完了 → 完了、その中は登録した順（新しいものほど下）。
+// 標準の並び: 今日のタスク → 未完了 → 完了、その中は期限の近い順 → 優先度の高い順 → 登録の古い順。
 // sort（{ key, dir }）があれば、その列の順を先にして、同じものは標準の並びにする。
 // どの並べ替えでも、完了したタスクは一番下にまとめる
 function sortTasks(tasks, sort) {
@@ -140,6 +140,8 @@ function sortTasks(tasks, sort) {
     (a, b) => a.done - b.done
       || (byColumn ? direction * byColumn(a, b, today) : 0)
       || sortRank(a, today) - sortRank(b, today)
+      || a.due_at.slice(0, 10).localeCompare(b.due_at.slice(0, 10))
+      || PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
       || a.created_at.localeCompare(b.created_at)
       || a.id - b.id,
   );
@@ -228,7 +230,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       type: "button",
       class: `g-head-label${sorted ? " sorted" : ""}`,
       title: sorted === "asc" ? "クリックで逆順に並べ替え"
-        : sorted === "desc" ? "クリックで標準の並び（今日 → 未完了 → 完了、登録順）に戻す"
+        : sorted === "desc" ? "クリックで標準の並び（今日 → 期限 → 優先度 → 登録、完了は下）に戻す"
           : `クリックで「${column.label}」の順に並べ替え`,
       onclick: () => toggleSort(column),
     }, column.label, sorted ? el("span", { class: "sort-mark" }, sorted === "asc" ? "▲" : "▼") : null);
