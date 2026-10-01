@@ -492,6 +492,9 @@ body.bar-resizing, body.bar-resizing * { cursor: ew-resize !important; user-sele
 
 /* バー全体はドラッグで移動できる */
 .g-bar { cursor: grab; }
+/* 日付の部分はドラッグで期間を左右にスライドできる */
+.g-row .g-track { cursor: grab; }
+body.gantt-panning, body.gantt-panning * { cursor: grabbing !important; user-select: none; }
 body.bar-moving, body.bar-moving * { cursor: grabbing !important; }
 
 /* 右側（リンク・ブレスト）をたたんだとき */

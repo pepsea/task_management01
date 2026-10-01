@@ -52,7 +52,8 @@ function buildColumns(scale, anchor, count) {
   const columns = [];
   if (scale === "day" || scale === "week") {
     const step = scale === "day" ? 1 : 7;
-    const start = startOfWeek(anchor);
+    // 日表示は anchor の日から（スライドで 1 日ずつ動かせる）、週表示はその週の月曜から
+    const start = scale === "day" ? startOfDay(anchor) : startOfWeek(anchor);
     for (let i = 0; i < count; i++) columns.push({ start: addDays(start, i * step), days: step });
   } else {
     for (let i = 0; i < count; i++) {
@@ -126,7 +127,7 @@ function sortTasks(tasks) {
 
 export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditDecision, onChangeDates }) {
   let scale = "day";
-  let anchor = startOfDay(new Date());
+  let anchor = startOfWeek(new Date());
   let tasks = [];
   let decisions = [];
   // 領域名 → 色（登録画面で自動割り当て・変更）
@@ -489,6 +490,59 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     );
   }
 
+  // 表示期間を units 単位（日表示は 1 日、週表示は 1 週、月表示は 1 か月）ずらす
+  function panBy(units) {
+    if (!units) return;
+    if (scale === "day") anchor = addDays(anchor, units);
+    else if (scale === "week") anchor = addDays(anchor, 7 * units);
+    else anchor = new Date(anchor.getFullYear(), anchor.getMonth() + units, 1);
+    render();
+  }
+
+  // 1 単位ぶんの横幅（px）
+  const unitWidth = () => computeLayout().pxPerDay * (scale === "day" ? 1 : scale === "week" ? 7 : 30);
+
+  // 日付の部分（見出し・ディシジョン行・タスク行の右側）の空いた所をドラッグすると、期間を左右にスライドする。
+  // バー・ボタン・入力欄の上では始めない
+  root.addEventListener("mousedown", (e) => {
+    if (e.button !== 0 || !e.target.closest(".g-track") || e.target.closest(".g-bar, button, input, a, .g-decision")) return;
+    e.preventDefault();
+    const startX = e.clientX;
+    const width = unitWidth();
+    let moved = 0;
+    const move = (ev) => {
+      const units = -Math.round((ev.clientX - startX) / pageZoom() / width);
+      if (units !== moved) {
+        panBy(units - moved);
+        moved = units;
+      }
+    };
+    const up = (ev) => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      document.body.classList.remove("gantt-panning");
+      // ドラッグした後のクリックで編集画面が開かないようにする
+      if (Math.abs(ev.clientX - startX) > 3) ignoreClickUntil = Date.now() + 300;
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    document.body.classList.add("gantt-panning");
+  });
+
+  // トラックパッドの左右スワイプ（横スクロール）でもスライドする
+  let wheelRest = 0;
+  root.addEventListener("wheel", (e) => {
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) || !e.target.closest(".g-track")) return;
+    e.preventDefault();
+    wheelRest += e.deltaX / pageZoom();
+    const width = unitWidth();
+    const units = Math.trunc(wheelRest / width);
+    if (units) {
+      wheelRest -= units * width;
+      panBy(units);
+    }
+  }, { passive: false });
+
   let resizeTimer = null;
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
@@ -518,7 +572,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       render();
     },
     goToday() {
-      anchor = startOfDay(new Date());
+      anchor = startOfWeek(new Date());
       render();
     },
   };
