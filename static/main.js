@@ -1,13 +1,13 @@
 import { api } from "./api.js";
 import { initBrainstorm } from "./brainstorm.js";
 import { initDecisionForm } from "./decisionForm.js";
+import { initRecurringForm } from "./recurringForm.js";
 import { createGantt } from "./gantt.js";
 import { initTaskForm } from "./taskForm.js";
 import { todayKey } from "./dates.js";
 import { toast } from "./ui.js";
 
 const taskSearch = document.getElementById("task-search");
-const rangeLabel = document.getElementById("range-label");
 const todayFilter = document.getElementById("today-filter");
 let tasks = [];
 let decisions = [];
@@ -40,9 +40,6 @@ const gantt = createGantt(document.getElementById("gantt"), {
     await loadTasks();
   },
   onEditDecision: (decision) => decisionForm.open({ decision }),
-  onRendered: () => {
-    rangeLabel.textContent = gantt.rangeLabel();
-  },
 });
 
 const taskForm = initTaskForm({
@@ -52,6 +49,7 @@ const taskForm = initTaskForm({
 });
 
 const decisionForm = initDecisionForm({ onSaved: () => loadDecisions() });
+const recurringForm = initRecurringForm({ onSaved: () => loadTasks() });
 
 initBrainstorm({
   onPromoted: (idea) => toast(`「${idea.title}」をアイディア保管庫に移しました`),
@@ -86,7 +84,6 @@ function renderGantt() {
   todayFilter.classList.toggle("on", todayOnly);
   todayFilter.setAttribute("aria-pressed", String(todayOnly));
   gantt.render((todayOnly ? todayTasks : tasks).filter(matchesSearch), decisions);
-  rangeLabel.textContent = gantt.rangeLabel();
 }
 
 async function loadTasks() {
@@ -96,6 +93,7 @@ async function loadTasks() {
     ]);
     tasks = loaded;
     taskForm.setOptions({ areas, related });
+    recurringForm.setOptions({ areas, related });
     gantt.setAreaColors(Object.fromEntries(areas.map((a) => [a.name, a.color])));
     renderGantt();
   } catch (err) {
@@ -117,7 +115,6 @@ const scaleButtons = document.querySelectorAll("[data-scale]");
 function setScale(scale) {
   for (const button of scaleButtons) button.classList.toggle("active", button.dataset.scale === scale);
   gantt.setScale(scale);
-  rangeLabel.textContent = gantt.rangeLabel();
 }
 
 // 右側（リンク・ブレスト）の開け閉め。たたむとガントが横幅いっぱいに広がる。状態はブラウザに覚えておく
@@ -153,10 +150,11 @@ todayFilter.addEventListener("click", () => {
   renderGantt();
 });
 for (const button of scaleButtons) button.addEventListener("click", () => setScale(button.dataset.scale));
-document.getElementById("prev").addEventListener("click", () => { gantt.shift(-1); rangeLabel.textContent = gantt.rangeLabel(); });
-document.getElementById("next").addEventListener("click", () => { gantt.shift(1); rangeLabel.textContent = gantt.rangeLabel(); });
-document.getElementById("today").addEventListener("click", () => { gantt.goToday(); rangeLabel.textContent = gantt.rangeLabel(); });
+document.getElementById("prev").addEventListener("click", () => gantt.shift(-1));
+document.getElementById("next").addEventListener("click", () => gantt.shift(1));
+document.getElementById("today").addEventListener("click", () => gantt.goToday());
 document.getElementById("add-task").addEventListener("click", () => taskForm.open());
+document.getElementById("add-recurring").addEventListener("click", () => recurringForm.open());
 document.getElementById("add-decision").addEventListener("click", () => decisionForm.open());
 
 loadTasks().then(openTaskFromIdea);

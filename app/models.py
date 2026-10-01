@@ -113,6 +113,7 @@ class TaskOut(BaseModel):
     today_on: Optional[str]
     links: list[TaskLink]
     done_at: Optional[str]
+    recurring_id: Optional[int]
     created_at: str
     updated_at: str
 
@@ -190,6 +191,59 @@ def check_time(value: Optional[str]) -> Optional[str]:
     if len(value) != 5:
         raise ValueError("時刻は HH:MM 形式で指定してください")
     return value
+
+
+RecurringRule = Literal["monthly_day", "monthly_weekday", "weekly"]
+
+
+class RecurringIn(BaseModel):
+    """定期タスクの作成・変更（変更も全項目を送る）。"""
+    area: NonEmptyStr
+    related: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] = ""
+    title: NonEmptyStr
+    priority: Priority = "mid"
+    memo: Annotated[str, StringConstraints(max_length=10000)] = ""
+    rule: RecurringRule
+    day: Optional[int] = Field(default=None, ge=1, le=31)
+    nth: Optional[int] = Field(default=None, ge=1, le=5)
+    weekday: Optional[int] = Field(default=None, ge=0, le=6)
+    lead_days: int = Field(default=0, ge=0, le=60)
+    start_from: str
+
+    @field_validator("start_from")
+    @classmethod
+    def validate_start_from(cls, value):
+        return check_date(value)
+
+    @model_validator(mode="after")
+    def check_rule_fields(self):
+        needed = {"monthly_day": ("day",), "monthly_weekday": ("nth", "weekday"), "weekly": ("weekday",)}[self.rule]
+        for name in needed:
+            if getattr(self, name) is None:
+                raise ValueError(f"{name} を指定してください")
+        # 使わない項目は消しておく
+        for name in ("day", "nth", "weekday"):
+            if name not in needed:
+                setattr(self, name, None)
+        return self
+
+
+class RecurringOut(BaseModel):
+    id: int
+    area: str
+    related: str
+    title: str
+    priority: Priority
+    memo: str
+    rule: RecurringRule
+    day: Optional[int]
+    nth: Optional[int]
+    weekday: Optional[int]
+    lead_days: int
+    start_from: str
+    generated_until: Optional[str]
+    created_at: str
+    updated_at: str
 
 
 class DecisionCreate(BaseModel):

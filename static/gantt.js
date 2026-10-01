@@ -124,7 +124,7 @@ function sortTasks(tasks) {
   );
 }
 
-export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditDecision, onChangeDates, onRendered }) {
+export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditDecision, onChangeDates }) {
   let scale = "day";
   let anchor = startOfDay(new Date());
   let tasks = [];
@@ -453,7 +453,10 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
           case "title": {
             const links = linkList(task.links);
             return el("div", { class: `g-title-cell${links ? " has-links" : ""}` },
-              el("div", { class: "g-title", title: task.memo ? `${task.title}\n\n${task.memo}` : task.title }, task.title),
+              el("div", { class: "g-title", title: task.memo ? `${task.title}\n\n${task.memo}` : task.title },
+                // 定期タスクから作った回には 🔁 を付ける
+                task.recurring_id ? el("span", { class: "recurring-mark", title: "定期タスク" }, "🔁") : null,
+                task.title),
               links);
           }
           // 開始・期限は月日だけを表示する
@@ -484,16 +487,6 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       decisionRow(layout),
       ...(rows.length ? rows : [el("div", { class: "g-empty" }, "タスクがありません。「＋ タスク」から追加できます。")]),
     );
-    // 列幅や折りたたみで表示期間が変わるので、呼び出し側に知らせる（期間表示の更新用）
-    onRendered?.();
-  }
-
-  function rangeLabel() {
-    const columns = buildColumns(scale, anchor, columnCount());
-    const last = columns[columns.length - 1];
-    const end = addDays(last.start, last.days - 1);
-    const f = (d) => `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
-    return `${f(columns[0].start)} 〜 ${f(end)}`;
   }
 
   let resizeTimer = null;
@@ -514,7 +507,6 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     setAreaColors(colors) {
       areaColors = colors;
     },
-    rangeLabel,
     setScale(next) {
       scale = next;
       render();

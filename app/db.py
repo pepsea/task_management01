@@ -33,6 +33,28 @@ CREATE TABLE IF NOT EXISTS tasks (
     today_on TEXT,
     links TEXT NOT NULL DEFAULT '[]',
     done_at TEXT,
+    recurring_id INTEGER REFERENCES recurring_tasks(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+-- 定期タスク（繰り返しのひな形）。回ごとに普通のタスクを作る
+--   rule: monthly_day（毎月 day 日）/ monthly_weekday（毎月 第 nth weekday 曜日、nth=5 は最終）/ weekly（毎週 weekday 曜日）
+--   weekday は 0=月 … 6=日。繰り返しの日を期限にし、lead_days 日前を開始にする
+--   generated_until: この日までの回は作成済み（NULL ならまだ作っていない）
+CREATE TABLE IF NOT EXISTS recurring_tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    area TEXT NOT NULL,
+    related TEXT NOT NULL DEFAULT '',
+    title TEXT NOT NULL,
+    priority TEXT NOT NULL CHECK (priority IN ('high', 'mid', 'low')),
+    memo TEXT NOT NULL DEFAULT '',
+    rule TEXT NOT NULL CHECK (rule IN ('monthly_day', 'monthly_weekday', 'weekly')),
+    day INTEGER,
+    nth INTEGER,
+    weekday INTEGER,
+    lead_days INTEGER NOT NULL DEFAULT 0,
+    start_from TEXT NOT NULL,
+    generated_until TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -122,6 +144,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
         # 完了した日時。導入前に完了していたタスクは最後に更新した日時を完了日時とみなす
         conn.execute("ALTER TABLE tasks ADD COLUMN done_at TEXT")
         conn.execute("UPDATE tasks SET done_at = updated_at WHERE done = 1")
+    if "recurring_id" not in task_columns:
+        conn.execute("ALTER TABLE tasks ADD COLUMN recurring_id INTEGER REFERENCES recurring_tasks(id) ON DELETE SET NULL")
     idea_columns = {row[1] for row in conn.execute("PRAGMA table_info(ideas)")}
     if "archived_at" not in idea_columns:
         conn.execute("ALTER TABLE ideas ADD COLUMN archived_at TEXT")

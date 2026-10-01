@@ -57,6 +57,7 @@ def collect(conn: sqlite3.Connection) -> dict:
         "version": EXPORT_VERSION,
         "exported_at": datetime.now().isoformat(timespec="seconds"),
         "tasks": tasks,
+        "recurring_tasks": _rows(conn, "SELECT * FROM recurring_tasks ORDER BY id"),
         "decisions": _rows(conn, "SELECT * FROM decisions ORDER BY date, id"),
         "ideas": ideas,
         "brainstorm": _rows(conn, "SELECT * FROM brainstorm ORDER BY id"),

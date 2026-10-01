@@ -160,6 +160,19 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .g-row.overdue .due-mark { background: #991b1b; }
 .details-collapsed .g-row.overdue .g-title, .details-collapsed .g-row.due-soon .g-title { color: var(--danger); }
 .g-empty { padding: 24px; color: var(--muted); }
+.recurring-btn { color: #0f766e; border-color: #0f766e; }
+.recurring-rule { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.recurring-rule label { flex: 1 1 100px; }
+.recurring-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; max-height: 50vh; overflow: auto; }
+.recurring-list li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; font-size: 13px; }
+.recurring-list li + li { border-top: 1px solid var(--line); }
+.recurring-list li:hover { background: var(--bg-soft); }
+.recurring-list li.empty { color: var(--muted); cursor: default; }
+.recurring-list li.empty:hover { background: none; }
+.recurring-list .recurring-title { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recurring-list .recurring-when { flex: none; color: #0f766e; margin-left: auto; white-space: nowrap; }
+.recurring-list .recurring-area { flex: none; color: var(--muted); white-space: nowrap; }
+.recurring-mark { color: #0f766e; margin-right: 3px; }
 .decision-btn { color: var(--decision); border-color: var(--decision); }
 .g-row.g-decisions { cursor: default; }
 .g-decisions .g-cells > .g-decision-caption { grid-column: 1 / -1; color: var(--decision); font-weight: 600; }
@@ -217,9 +230,11 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 /* ダイアログ */
 dialog { border: 1px solid var(--line); border-radius: 10px; padding: 18px; width: 460px; max-height: 92vh; }
 dialog::backdrop { background: rgba(0, 0, 0, .25); }
-#task-form, #decision-form { display: flex; flex-direction: column; gap: 10px; }
+#task-form, #decision-form, #recurring-form, .recurring-view { display: flex; flex-direction: column; gap: 10px; }
+#recurring-form label,
 #task-form label, #decision-form label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--muted); }
 #task-form label.check { flex-direction: row; align-items: center; gap: 6px; }
+#recurring-dialog .actions,
 #task-form .actions, #decision-form .actions { display: flex; gap: 6px; }
 .form-hint { margin: -6px 0 0; font-size: 11px; color: var(--muted); }
 #task-form textarea { resize: vertical; line-height: 1.5; }

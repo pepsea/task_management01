@@ -12,6 +12,7 @@
     <section class="pane pane-gantt">
       <header class="toolbar">
         <button id="add-task" type="button" class="primary">＋ タスク</button>
+        <button id="add-recurring" type="button" class="recurring-btn" title="毎月○日・毎月第○○曜日・毎週○曜日のタスク">＋ 定期タスク</button>
         <button id="add-decision" type="button" class="decision-btn">＋ ディシジョン</button>
         <button id="side-toggle" type="button" class="side-toggle" aria-controls="side-pane" aria-expanded="true"
           title="右側のリンク・ブレストをたたむ／開く">リンク・ブレスト ▸</button>
@@ -26,7 +27,6 @@
         <button id="prev" type="button" aria-label="前へ">◀</button>
         <button id="today" type="button">今日</button>
         <button id="next" type="button" aria-label="次へ">▶</button>
-        <span id="range-label" class="range-label"></span>
       </header>
       <div id="gantt" class="gantt"></div>
     </section>
@@ -91,6 +91,72 @@
         <button id="task-delete" type="button" class="danger">削除</button>
         <span class="spacer"></span>
         <button id="task-cancel" type="button">キャンセル</button>
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="recurring-dialog">
+    <div id="recurring-list-view" class="recurring-view">
+      <h2>定期タスク</h2>
+      <p class="form-hint">繰り返しの日を期限にしたタスクを、1 か月先の分まで自動で作ります。</p>
+      <ul id="recurring-list" class="recurring-list"></ul>
+      <div class="actions">
+        <button id="recurring-new" type="button" class="primary">＋ 定期タスクを追加</button>
+        <span class="spacer"></span>
+        <button id="recurring-close" type="button">閉じる</button>
+      </div>
+    </div>
+    <form id="recurring-form" hidden>
+      <h2 id="recurring-form-title">定期タスクを追加</h2>
+      <label>領域<select name="area" required></select></label>
+      <label>関連項目<select name="related"></select></label>
+      <label>タスク名<input name="title" required></label>
+      <div class="recurring-rule">
+        <label>繰り返し
+          <select name="rule">
+            <option value="monthly_day">毎月 ○日</option>
+            <option value="monthly_weekday">毎月 第○ ○曜日</option>
+            <option value="weekly">毎週 ○曜日</option>
+          </select>
+        </label>
+        <label data-for="monthly_day">日<select name="day"></select></label>
+        <label data-for="monthly_weekday">第
+          <select name="nth">
+            <option value="1">第1</option>
+            <option value="2">第2</option>
+            <option value="3">第3</option>
+            <option value="4">第4</option>
+            <option value="5">最終</option>
+          </select>
+        </label>
+        <label data-for="monthly_weekday weekly">曜日
+          <select name="weekday">
+            <option value="0">月曜</option>
+            <option value="1">火曜</option>
+            <option value="2">水曜</option>
+            <option value="3">木曜</option>
+            <option value="4">金曜</option>
+            <option value="5">土曜</option>
+            <option value="6">日曜</option>
+          </select>
+        </label>
+      </div>
+      <label>何日前から始めるか（0 なら期限の日だけ）<input name="lead_days" type="number" min="0" max="60" value="0" required></label>
+      <label>優先度
+        <select name="priority">
+          <option value="high">高</option>
+          <option value="mid">中</option>
+          <option value="low">低</option>
+        </select>
+      </label>
+      <label>メモ<textarea name="memo" rows="3"></textarea></label>
+      <label>この日以降の回を作る<input name="start_from" type="date" required></label>
+      <p id="recurring-form-error" class="form-error"></p>
+      <div class="actions">
+        <button id="recurring-delete" type="button" class="danger">削除</button>
+        <span class="spacer"></span>
+        <button id="recurring-back" type="button">戻る</button>
         <button type="submit" class="primary">保存</button>
       </div>
     </form>

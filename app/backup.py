@@ -17,7 +17,7 @@ NAME_PATTERN = re.compile(r"^app-(\d{8}-\d{6})(-before-restore)?(?:-(\d+))?\.db$
 # 復元で中身を入れ替える表（外部キーの親から順に）。ログインのアカウントとセッションは入れ替えない
 DATA_TABLES = [
     "areas", "related_items", "tags", "ideas", "idea_tags", "notes", "note_tags",
-    "tasks", "decisions", "brainstorm", "quick_links",
+    "recurring_tasks", "tasks", "decisions", "brainstorm", "quick_links",
 ]
 
 

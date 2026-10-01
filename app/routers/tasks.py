@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.db import get_conn, now_iso
 from app.models import TaskCreate, TaskOut, TaskUpdate
+from app.recurrence import generate
 from app.routers.export import tasks_csv
 
 router = APIRouter(prefix="/api", tags=["tasks"])
@@ -61,6 +62,8 @@ def _archive_limit() -> str:
 @router.get("/tasks", response_model=list[TaskOut])
 def list_tasks(area: str | None = None, conn: sqlite3.Connection = Depends(get_conn)):
     delete_expired_tasks(conn)
+    # 定期タスクの、まだ作っていない回をタスクにする
+    generate(conn)
     # 完了して 2 日たったタスクはアーカイブに回すので、TODO には出さない
     where = "NOT (done = 1 AND done_at IS NOT NULL AND done_at < ?)"
     params: list = [_archive_limit()]

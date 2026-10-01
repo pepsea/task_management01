@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from app import auth
 from app.db import connect, init_db
 from app.routers import auth as auth_router
-from app.routers import backups, brainstorm, decisions, export, ideas, links, masters, notes, tags, tasks
+from app.routers import backups, brainstorm, decisions, export, ideas, links, masters, notes, recurring, tags, tasks
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -70,6 +70,7 @@ def health():
 
 app.include_router(auth_router.router)
 app.include_router(tasks.router)
+app.include_router(recurring.router)
 app.include_router(ideas.router)
 app.include_router(brainstorm.router)
 app.include_router(decisions.router)
