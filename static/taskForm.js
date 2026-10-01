@@ -1,5 +1,5 @@
 import { api } from "./api.js";
-import { addDays, toInputValue } from "./dates.js";
+import { addDays, toInputValue, todayKey } from "./dates.js";
 import { el, isWebUrl } from "./ui.js";
 
 function defaultTimes() {
@@ -96,6 +96,8 @@ export function initTaskForm({ onSaved }) {
     field("start_at").value = values.start_at.slice(0, 10);
     field("due_at").value = values.due_at.slice(0, 10);
     field("done").checked = Boolean(values.done);
+    // 新しいタスクは「今日のタスク」をオンにしておく。編集では今の状態
+    field("today").checked = task ? task.today_on === todayKey() : true;
     linkList.replaceChildren(...(values.links ?? []).map(linkRow));
     heading.textContent = task ? "タスクを編集" : "タスクを追加";
     deleteButton.hidden = !task;
@@ -116,6 +118,7 @@ export function initTaskForm({ onSaved }) {
       due_at: withTime("due_at", "T18:00"),
       priority: field("priority").value,
       done: field("done").checked,
+      today_on: field("today").checked ? todayKey() : null,
       memo: field("memo").value,
       links: readLinks(),
     };
