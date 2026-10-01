@@ -502,25 +502,46 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
   // 1 単位ぶんの横幅（px）
   const unitWidth = () => computeLayout().pxPerDay * (scale === "day" ? 1 : scale === "week" ? 7 : 30);
 
+  // スライド中の表示。offset（px、右へ動かすと正）だけ中身をずらして見せる。
+  // 1 単位を超えたぶんは期間を描き直し、残り（半単位以内）を CSS の --pan で指に追従させる
+  const pan = { units: 0, frame: null, offset: 0 };
+  function setPanOffset(offset) {
+    pan.offset = offset;
+    if (pan.frame) return;
+    pan.frame = requestAnimationFrame(() => {
+      pan.frame = null;
+      const width = unitWidth();
+      const units = -Math.round(pan.offset / width);
+      panBy(units - pan.units);
+      pan.units = units;
+      root.style.setProperty("--pan", `${pan.offset + units * width}px`);
+    });
+  }
+  function endPan() {
+    cancelAnimationFrame(pan.frame);
+    pan.frame = null;
+    // 最後の位置で描き直してから、ずれ（半単位以内）を戻す
+    const units = -Math.round(pan.offset / unitWidth());
+    panBy(units - pan.units);
+    pan.units = 0;
+    pan.offset = 0;
+    root.style.removeProperty("--pan");
+    root.classList.remove("panning");
+  }
+
   // 日付の部分（見出し・ディシジョン行・タスク行の右側）の空いた所をドラッグすると、期間を左右にスライドする。
   // バー・ボタン・入力欄の上では始めない
   root.addEventListener("mousedown", (e) => {
     if (e.button !== 0 || !e.target.closest(".g-track") || e.target.closest(".g-bar, button, input, a, .g-decision")) return;
     e.preventDefault();
     const startX = e.clientX;
-    const width = unitWidth();
-    let moved = 0;
-    const move = (ev) => {
-      const units = -Math.round((ev.clientX - startX) / pageZoom() / width);
-      if (units !== moved) {
-        panBy(units - moved);
-        moved = units;
-      }
-    };
+    root.classList.add("panning");
+    const move = (ev) => setPanOffset((ev.clientX - startX) / pageZoom());
     const up = (ev) => {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
       document.body.classList.remove("gantt-panning");
+      endPan();
       // ドラッグした後のクリックで編集画面が開かないようにする
       if (Math.abs(ev.clientX - startX) > 3) ignoreClickUntil = Date.now() + 300;
     };
@@ -529,18 +550,15 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     document.body.classList.add("gantt-panning");
   });
 
-  // トラックパッドの左右スワイプ（横スクロール）でもスライドする
-  let wheelRest = 0;
+  // トラックパッドの左右スワイプ（横スクロール）でもスライドする。止まったら区切りに合わせる
+  let wheelTimer = null;
   root.addEventListener("wheel", (e) => {
     if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) || !e.target.closest(".g-track")) return;
     e.preventDefault();
-    wheelRest += e.deltaX / pageZoom();
-    const width = unitWidth();
-    const units = Math.trunc(wheelRest / width);
-    if (units) {
-      wheelRest -= units * width;
-      panBy(units);
-    }
+    root.classList.add("panning");
+    setPanOffset(pan.offset - e.deltaX / pageZoom());
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(endPan, 150);
   }, { passive: false });
 
   let resizeTimer = null;
