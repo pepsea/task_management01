@@ -130,13 +130,15 @@ const COLUMN_SORTS = {
 };
 
 // 標準の並び: 今日のタスク → 未完了 → 完了、その中は登録した順（新しいものほど下）。
-// sort（{ key, dir }）があれば、その列の順を先にして、同じものは標準の並びにする
+// sort（{ key, dir }）があれば、その列の順を先にして、同じものは標準の並びにする。
+// どの並べ替えでも、完了したタスクは一番下にまとめる
 function sortTasks(tasks, sort) {
   const today = todayKey();
   const byColumn = sort && COLUMN_SORTS[sort.key];
   const direction = sort?.dir === "desc" ? -1 : 1;
   return [...tasks].sort(
-    (a, b) => (byColumn ? direction * byColumn(a, b, today) : 0)
+    (a, b) => a.done - b.done
+      || (byColumn ? direction * byColumn(a, b, today) : 0)
       || sortRank(a, today) - sortRank(b, today)
       || a.created_at.localeCompare(b.created_at)
       || a.id - b.id,
