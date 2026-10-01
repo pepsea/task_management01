@@ -28,9 +28,9 @@ const TABLE_STORAGE_KEY = "gantt.table";
 function loadTableSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(TABLE_STORAGE_KEY) ?? "{}");
-    return { widths: saved.widths ?? {}, collapsed: Boolean(saved.collapsed) };
+    return { widths: saved.widths ?? {}, collapsed: Boolean(saved.collapsed), sort: saved.sort ?? null };
   } catch {
-    return { widths: {}, collapsed: false };
+    return { widths: {}, collapsed: false, sort: null };
   }
 }
 
@@ -114,10 +114,27 @@ function sortRank(task, today) {
   return task.today_on === today ? 0 : 1;
 }
 
-function sortTasks(tasks) {
+// 見出しをクリックしたときの並べ替え（昇順の比べ方。降順はこの逆）。空の関連項目は昇順で最後に回す
+const textOrder = (a, b) => (a === "") - (b === "") || a.localeCompare(b, "ja");
+const COLUMN_SORTS = {
+  today: (a, b, today) => (b.today_on === today) - (a.today_on === today),
+  related: (a, b) => textOrder(a.related, b.related),
+  title: (a, b) => textOrder(a.title, b.title),
+  start: (a, b) => a.start_at.slice(0, 10).localeCompare(b.start_at.slice(0, 10)),
+  due: (a, b) => a.due_at.slice(0, 10).localeCompare(b.due_at.slice(0, 10)),
+  prio: (a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority],
+  done: (a, b) => a.done - b.done,
+};
+
+// 標準の並び: 今日のタスク → 未完了 → 完了、その中は期限の日付・優先度の順。
+// sort（{ key, dir }）があれば、その列の順を先にして、同じものは標準の並びにする
+function sortTasks(tasks, sort) {
   const today = todayKey();
+  const byColumn = sort && COLUMN_SORTS[sort.key];
+  const direction = sort?.dir === "desc" ? -1 : 1;
   return [...tasks].sort(
-    (a, b) => sortRank(a, today) - sortRank(b, today)
+    (a, b) => (byColumn ? direction * byColumn(a, b, today) : 0)
+      || sortRank(a, today) - sortRank(b, today)
       || a.due_at.slice(0, 10).localeCompare(b.due_at.slice(0, 10))
       || PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
       || a.due_at.localeCompare(b.due_at)
@@ -178,6 +195,15 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     render();
   }
 
+  // 見出しのクリックで並べ替え: 昇順 → 降順 → 標準の並び
+  function toggleSort(column) {
+    const current = table.sort?.key === column.key ? table.sort.dir : null;
+    table.sort = current === null ? { key: column.key, dir: "asc" }
+      : current === "asc" ? { key: column.key, dir: "desc" } : null;
+    saveTableSettings(table);
+    render();
+  }
+
   function headerCell(column) {
     const toggle = column.key === "title"
       ? el("button", {
@@ -195,8 +221,16 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
         onmousedown: (e) => startResize(e, column),
         ondblclick: () => resetWidth(column),
       });
-    return el("div", { class: `g-head-cell${toggle ? " has-toggle" : ""}` },
-      el("span", { class: "g-head-label" }, column.label), toggle, resizer);
+    const sorted = table.sort?.key === column.key ? table.sort.dir : null;
+    const label = el("button", {
+      type: "button",
+      class: `g-head-label${sorted ? " sorted" : ""}`,
+      title: sorted === "asc" ? "クリックで逆順に並べ替え"
+        : sorted === "desc" ? "クリックで標準の並び（今日 → 未完了 → 完了、期限順）に戻す"
+          : `クリックで「${column.label}」の順に並べ替え`,
+      onclick: () => toggleSort(column),
+    }, column.label, sorted ? el("span", { class: "sort-mark" }, sorted === "asc" ? "▲" : "▼") : null);
+    return el("div", { class: `g-head-cell${toggle ? " has-toggle" : ""}` }, label, toggle, resizer);
   }
 
   // 表示期間と、日付 → 横位置（px）の換算をまとめたもの。render のたびに作り直す
@@ -484,7 +518,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     // 列が細いときは日付見出しの文字を小さくする（style.css の .narrow-cols）
     root.classList.toggle("narrow-cols", layout.pxPerDay * SCALES[scale].nominalDays < 30);
     const now = new Date();
-    const rows = sortTasks(tasks).map((t) => taskRow(t, layout, now));
+    const rows = sortTasks(tasks, table.sort).map((t) => taskRow(t, layout, now));
     root.replaceChildren(
       headerRow(layout),
       decisionRow(layout),

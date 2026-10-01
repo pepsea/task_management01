@@ -76,7 +76,13 @@ h2 { font-size: 14px; margin: 0; }
 .g-head { position: sticky; top: 0; z-index: 2; background: var(--bg); font-weight: 600; }
 .g-head .g-cells { z-index: 3; }
 .g-head-cell { position: relative; display: flex; align-items: center; gap: 4px; }
-.g-head-label { overflow: hidden; text-overflow: ellipsis; }
+.g-head-label {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; border: none; background: none;
+  padding: 0; font: inherit; font-weight: inherit; color: inherit; cursor: pointer; text-align: left;
+}
+.g-head-label:hover { color: var(--accent); background: none; }
+.g-head-label.sorted { color: var(--accent); }
+.sort-mark { font-size: 9px; margin-left: 2px; }
 .g-head-cell.has-toggle { justify-content: space-between; }
 .collapse-toggle { flex: none; padding: 0 6px; font-size: 12px; line-height: 20px; color: var(--muted); margin-right: 6px; white-space: nowrap; }
 .col-resizer { position: absolute; top: 0; right: 0; bottom: 0; width: 6px; cursor: col-resize; }
