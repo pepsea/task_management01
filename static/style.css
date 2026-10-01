@@ -135,6 +135,11 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 }
 /* バーは行の上下の中央に置く（リンクがあって 2 行の行でも） */
 .g-bar { position: absolute; top: calc(50% - 8px); height: 16px; border-radius: 4px; }
+.g-bar-label {
+  display: block; padding: 0 6px; font-size: 11px; line-height: 16px; color: #fff; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 2px rgba(0, 0, 0, .35); pointer-events: none;
+}
+.task-search { width: 120px; padding: 3px 8px; font-size: 13px; }
 .g-today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: .6; }
 .prio { font-weight: 600; }
 .prio.high { color: var(--high); }

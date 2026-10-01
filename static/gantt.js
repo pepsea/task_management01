@@ -15,7 +15,6 @@ const SCALES = {
 // 見出しの右端をドラッグすると幅を変えられ、幅と折りたたみの状態はブラウザ（localStorage）に保存する
 const TABLE_COLUMNS = [
   { key: "today", label: "☀", width: 32, resizable: false },
-  { key: "area", label: "領域", width: 110 },
   { key: "related", label: "関連項目", width: 100 },
   { key: "title", label: "タスク名", width: 240 },
   { key: "start", label: "開始", width: 60, detail: true },
@@ -410,12 +409,15 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     if (first <= last) {
       const left = first * layout.pxPerDay;
       const width = Math.max((last - first + 1) * layout.pxPerDay, 4);
+      const barLabel = task.related ? `${task.area} / ${task.related}` : task.area;
       const bar = el("div", {
         class: "g-bar",
-        title: `${task.title}\n${formatMonthDay(task.start_at)} 〜 ${formatMonthDay(task.due_at)}\n（ドラッグで移動、両端のドラッグで開始・期限を変更）`,
+        title: `${task.title}\n${barLabel}\n${formatMonthDay(task.start_at)} 〜 ${formatMonthDay(task.due_at)}\n（ドラッグで移動、両端のドラッグで開始・期限を変更）`,
         // バーの色は領域の色（登録画面で設定）。優先度は「優先」の列の文字色で表す
         style: `left:${left + 1}px;width:${width - 2}px;background:${areaColors[task.area] ?? "#9ca3af"}`,
-      });
+      },
+      // バーの中に領域と関連項目を書く（短いバーでは末尾を「…」で省く）
+      el("span", { class: "g-bar-label" }, barLabel));
       // 表示期間の外まで続いている側の端は見えていないので、つかめないようにする
       if (startIndex >= 0) {
         bar.append(el("span", {
@@ -447,8 +449,6 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       el("div", { class: "g-cells" }, visibleColumns().map((column) => {
         switch (column.key) {
           case "today": return el("div", { class: "g-today-cell" }, todayButton);
-          case "area": return el("div", { title: task.area },
-            el("span", { class: "area-chip", style: `background:${areaColors[task.area] ?? "#9ca3af"}` }, task.area));
           case "related": return el("div", { title: task.related }, task.related);
           case "title": {
             const links = linkList(task.links);

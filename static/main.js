@@ -4,9 +4,9 @@ import { initDecisionForm } from "./decisionForm.js";
 import { createGantt } from "./gantt.js";
 import { initTaskForm } from "./taskForm.js";
 import { todayKey } from "./dates.js";
-import { el, toast } from "./ui.js";
+import { toast } from "./ui.js";
 
-const areaFilter = document.getElementById("area-filter");
+const taskSearch = document.getElementById("task-search");
 const rangeLabel = document.getElementById("range-label");
 const todayFilter = document.getElementById("today-filter");
 let tasks = [];
@@ -70,31 +70,31 @@ async function openTaskFromIdea() {
   }
 }
 
+// 検索欄の文字（空白区切りはすべてを含むもの）で絞り込む。対象はタスク名・領域・関連項目・メモ・リンク
+function matchesSearch(task) {
+  const words = taskSearch.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const text = [task.title, task.area, task.related, task.memo, ...task.links.flatMap((l) => [l.label, l.url])]
+    .join("\n").toLowerCase();
+  return words.every((w) => text.includes(w));
+}
+
 function renderGantt() {
   const today = todayKey();
   const todayTasks = tasks.filter((t) => t.today_on === today);
   document.getElementById("today-count").textContent = String(todayTasks.length);
   todayFilter.classList.toggle("on", todayOnly);
   todayFilter.setAttribute("aria-pressed", String(todayOnly));
-  gantt.render(todayOnly ? todayTasks : tasks, decisions);
+  gantt.render((todayOnly ? todayTasks : tasks).filter(matchesSearch), decisions);
   rangeLabel.textContent = gantt.rangeLabel();
 }
 
 async function loadTasks() {
   try {
     const [areas, related, loaded] = await Promise.all([
-      api.listAreas(), api.listRelated(), api.listTasks(areaFilter.value),
+      api.listAreas(), api.listRelated(), api.listTasks(),
     ]);
     tasks = loaded;
-    const selected = areaFilter.value;
-    const areaNames = areas.map((a) => a.name);
-    areaFilter.replaceChildren(
-      el("option", { value: "" }, "すべての領域"),
-      ...areaNames.map((name) => el("option", { value: name }, name)),
-    );
-    // 絞り込み中の領域が登録画面で消された場合は「すべて」に戻す
-    areaFilter.value = areaNames.includes(selected) ? selected : "";
-    if (areaFilter.value !== selected) tasks = await api.listTasks("");
     taskForm.setOptions({ areas, related });
     gantt.setAreaColors(Object.fromEntries(areas.map((a) => [a.name, a.color])));
     renderGantt();
@@ -147,7 +147,7 @@ try {
 setSideCollapsed(sideCollapsed);
 sideToggle.addEventListener("click", () => setSideCollapsed(!appLayout.classList.contains("side-collapsed")));
 
-areaFilter.addEventListener("change", loadTasks);
+taskSearch.addEventListener("input", renderGantt);
 todayFilter.addEventListener("click", () => {
   todayOnly = !todayOnly;
   renderGantt();
