@@ -10,10 +10,12 @@
   <nav id="app-tabs" class="app-tabs"></nav>
   <header class="toolbar">
     <div class="seg" role="group" aria-label="アーカイブの種類">
+      <button type="button" data-kind="tasks">タスク</button>
       <button type="button" data-kind="ideas">アイディア</button>
       <button type="button" data-kind="notes">メモ</button>
     </div>
     <span id="archive-count" class="range-label"></span>
+    <a id="archive-export" class="button" href="/api/tasks/archived.csv" title="アーカイブしたタスクを CSV（Excel で開けます）でダウンロード" hidden>⬇ CSV</a>
     <span class="spacer"></span>
     <input id="archive-search" type="search" placeholder="検索（タイトル・本文）" aria-label="検索">
     <select id="archive-tag-filter" aria-label="タグで絞り込み">

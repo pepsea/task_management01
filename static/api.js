@@ -39,6 +39,7 @@ export const api = {
   createTask: (task) => request("POST", "/api/tasks", task),
   updateTask: (id, patch) => request("PATCH", `/api/tasks/${id}`, patch),
   deleteTask: (id) => request("DELETE", `/api/tasks/${id}`),
+  listArchivedTasks: (search) => request("GET", `/api/tasks/archived${q({ q: search })}`),
   listAreas: () => request("GET", "/api/areas"),
   listRelated: () => request("GET", "/api/related"),
   listIdeas: (search, tag, archived = false) =>

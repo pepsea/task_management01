@@ -1,5 +1,5 @@
 import { api } from "./api.js";
-import { formatDateLabel, formatStamp } from "./dates.js";
+import { formatDateLabel, formatMonthDay, formatStamp } from "./dates.js";
 import { copyNote, exportNote } from "./noteExport.js";
 import { el, tagChip, toast } from "./ui.js";
 
@@ -9,10 +9,14 @@ const list = document.getElementById("archive-list");
 const count = document.getElementById("archive-count");
 const search = document.getElementById("archive-search");
 const tagFilter = document.getElementById("archive-tag-filter");
+const exportLink = document.getElementById("archive-export");
 const kindButtons = document.querySelectorAll("[data-kind]");
 let searchTimer = null;
-// 表示中の種類（?kind=notes でメモ、それ以外はアイディア）
-let kind = new URLSearchParams(location.search).get("kind") === "notes" ? "notes" : "ideas";
+// 表示中の種類（?kind=tasks でタスク、?kind=notes でメモ、それ以外はアイディア）
+const KINDS = { tasks: "タスク", ideas: "アイディア", notes: "メモ" };
+const PRIORITY_LABEL = { high: "高", mid: "中", low: "低" };
+let kind = new URLSearchParams(location.search).get("kind");
+if (!(kind in KINDS)) kind = "ideas";
 
 async function run(action) {
   try {
@@ -49,7 +53,7 @@ function deleteButton(title, remove) {
 }
 
 // 1 行表示の行。行をクリックすると下に本文と日付を開く
-function archiveRow({ title, tags, badge, archivedAt, body, dates, buttons }) {
+function archiveRow({ title, tags, badge, archivedAt, dateTitle = "アーカイブした日時", body, dates, buttons }) {
   const detail = el("div", { class: "archive-detail", hidden: true }, body, el("div", { class: "archive-dates" }, dates));
   const row = el("li", { class: "archive-row" },
     el("div", {
@@ -65,10 +69,35 @@ function archiveRow({ title, tags, badge, archivedAt, body, dates, buttons }) {
       tags.length ? el("span", { class: "tag-chips" }, tags.map((t) => tagChip(t))) : null,
       badge,
       el("span", { class: "spacer" }),
-      el("span", { class: "archive-date", title: "アーカイブした日時" }, formatStamp(archivedAt)),
+      el("span", { class: "archive-date", title: dateTitle }, formatStamp(archivedAt)),
       ...buttons),
     detail);
   return row;
+}
+
+// 完了から 2 日たったタスク。「戻す」で未完了に戻して TODO に表示する
+function taskRow(task) {
+  const memo = task.memo.trim()
+    ? el("div", { class: "archive-body" }, task.memo)
+    : el("div", { class: "archive-body empty" }, "（メモなし）");
+  const links = task.links.length
+    ? el("ul", { class: "archive-links" }, task.links.map((link) =>
+      el("li", {}, el("a", { href: link.url, target: "_blank", rel: "noopener noreferrer" }, link.label || link.url))))
+    : null;
+  return archiveRow({
+    title: task.title,
+    tags: [],
+    badge: el("span", { class: "archive-task-area" }, task.related ? `${task.area} / ${task.related}` : task.area),
+    archivedAt: task.done_at,
+    dateTitle: "完了した日時",
+    body: el("div", {}, memo, links),
+    dates: `${formatMonthDay(task.start_at)} 〜 ${formatMonthDay(task.due_at)} ・ 優先度 ${PRIORITY_LABEL[task.priority]}`
+      + ` ・ 作成 ${formatStamp(task.created_at)} ・ 完了 ${formatStamp(task.done_at)}`,
+    buttons: [
+      restoreButton("戻す", () => api.updateTask(task.id, { done: false }), `「${task.title}」を未完了に戻し、TODO に戻しました`),
+      deleteButton(task.title, () => api.deleteTask(task.id)),
+    ],
+  });
 }
 
 function ideaRow(idea) {
@@ -140,23 +169,31 @@ async function loadTags() {
 
 async function load() {
   for (const button of kindButtons) button.classList.toggle("active", button.dataset.kind === kind);
+  // タスクにはタグが無いので、タグの絞り込みの代わりに CSV の書き出しを出す
+  tagFilter.hidden = kind === "tasks";
+  exportLink.hidden = kind !== "tasks";
   try {
     await loadTags();
     const q = search.value.trim();
     let rows;
-    if (kind === "notes") {
+    if (kind === "tasks") {
+      rows = (await api.listArchivedTasks(q)).map(taskRow);
+    } else if (kind === "notes") {
       const notes = await api.listNotes(q, tagFilter.value, true);
       const { html } = notes.length ? await api.renderMarkdown(notes.map((n) => n.body)) : { html: [] };
       rows = notes.map((note, i) => noteRow(note, html[i]));
     } else {
       rows = (await api.listIdeas(q, tagFilter.value, true)).map(ideaRow);
     }
-    const label = kind === "notes" ? "メモ" : "アイディア";
+    const label = KINDS[kind];
+    const filtered = q || (kind !== "tasks" && tagFilter.value);
     count.textContent = `${rows.length} 件`;
     list.replaceChildren(rows.length
       ? el("ul", { class: "archive-rows" }, rows)
       : el("p", { class: "empty archive-empty" },
-        q || tagFilter.value ? `該当する${label}はありません` : `アーカイブした${label}はまだありません`));
+        filtered ? `該当する${label}はありません`
+          : kind === "tasks" ? "アーカイブしたタスクはまだありません（完了から 2 日たつとここに移ります）"
+            : `アーカイブした${label}はまだありません`));
   } catch (err) {
     toast(err.message);
   }
@@ -165,7 +202,7 @@ async function load() {
 for (const button of kindButtons) {
   button.addEventListener("click", () => {
     kind = button.dataset.kind;
-    history.replaceState(null, "", kind === "notes" ? "?kind=notes" : location.pathname);
+    history.replaceState(null, "", kind === "ideas" ? location.pathname : `?kind=${kind}`);
     load();
   });
 }

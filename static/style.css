@@ -388,6 +388,8 @@ dialog::backdrop { background: rgba(0, 0, 0, .25); }
 .archive-title.untitled { color: var(--muted); }
 .archive-line .tag-chips { flex: none; }
 .archive-line .badge { color: var(--accent); }
+.archive-task-area { flex: none; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.archive-links { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
 .archive-date { flex: none; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .archive-line button { flex: none; font-size: 12px; padding: 3px 10px; }
 .archive-detail { padding: 4px 16px 12px 32px; display: flex; flex-direction: column; gap: 8px; }

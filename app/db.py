@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     memo TEXT NOT NULL DEFAULT '',
     today_on TEXT,
     links TEXT NOT NULL DEFAULT '[]',
+    done_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -117,6 +118,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE tasks ADD COLUMN today_on TEXT")
     if "links" not in task_columns:
         conn.execute("ALTER TABLE tasks ADD COLUMN links TEXT NOT NULL DEFAULT '[]'")
+    if "done_at" not in task_columns:
+        # 完了した日時。導入前に完了していたタスクは最後に更新した日時を完了日時とみなす
+        conn.execute("ALTER TABLE tasks ADD COLUMN done_at TEXT")
+        conn.execute("UPDATE tasks SET done_at = updated_at WHERE done = 1")
     idea_columns = {row[1] for row in conn.execute("PRAGMA table_info(ideas)")}
     if "archived_at" not in idea_columns:
         conn.execute("ALTER TABLE ideas ADD COLUMN archived_at TEXT")

@@ -87,7 +87,7 @@ def test_csv_files_open_in_excel(client):
     assert raw.startswith(b"\xef\xbb\xbf")  # Excel で文字化けしないよう BOM 付き UTF-8
     rows = list(csv.reader(io.StringIO(raw.decode("utf-8-sig"))))
     assert rows[0][:6] == ["領域", "関連項目", "タスク名", "開始", "期限", "優先度"]
-    assert rows[1][:6] == ["仕事", "PJ-A", "資料作成", "2026-10-01T09:00", "2026-10-03T18:00", "高"]
+    assert rows[1][:6] == ["仕事", "PJ-A", "資料作成", "2026-10-01", "2026-10-03", "高"]
     ideas = list(csv.reader(io.StringIO(z.read("ideas.csv").decode("utf-8-sig"))))
     assert ideas[1][0] == "新サービス" and ideas[1][1] == "本文,カンマ"
 

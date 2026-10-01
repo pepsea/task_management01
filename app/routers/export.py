@@ -77,6 +77,16 @@ def _csv(header: list[str], rows: list[list]) -> bytes:
     return buffer.getvalue().encode("utf-8-sig")
 
 
+def tasks_csv(tasks: list[dict]) -> bytes:
+    """タスクの一覧を CSV にする（全データのエクスポートと、アーカイブのタスクの書き出しで共通）。"""
+    return _csv(
+        ["領域", "関連項目", "タスク名", "開始", "期限", "優先度", "完了", "完了日時", "今日のタスク", "メモ", "リンク"],
+        [[t["area"], t["related"], t["title"], t["start_at"][:10], t["due_at"][:10], PRIORITY_LABEL[t["priority"]],
+          "完了" if t["done"] else "", (t["done_at"] or "")[:16].replace("T", " "), t["today_on"] or "", t["memo"],
+          "\n".join(link["url"] for link in t["links"])] for t in tasks],
+    )
+
+
 def _safe_filename(text: str) -> str:
     return re.sub(r'[\\/:*?"<>|\r\n\t]', "_", text)[:60]
 
@@ -95,12 +105,7 @@ def build_zip(data: dict) -> bytes:
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("README.txt", README)
         z.writestr("data.json", json.dumps(data, ensure_ascii=False, indent=2))
-        z.writestr("tasks.csv", _csv(
-            ["領域", "関連項目", "タスク名", "開始", "期限", "優先度", "完了", "今日のタスク", "メモ", "リンク"],
-            [[t["area"], t["related"], t["title"], t["start_at"], t["due_at"], PRIORITY_LABEL[t["priority"]],
-              "完了" if t["done"] else "", t["today_on"] or "", t["memo"],
-              "\n".join(link["url"] for link in t["links"])] for t in data["tasks"]],
-        ))
+        z.writestr("tasks.csv", tasks_csv(data["tasks"]))
         z.writestr("ideas.csv", _csv(
             ["タイトル", "本文", "タグ", "優先", "アーカイブ", "思いつき日時", "更新日時"],
             [[i["title"], i["body"], ", ".join(tag["name"] for tag in i["tags"]), "★" if i["prioritized"] else "",

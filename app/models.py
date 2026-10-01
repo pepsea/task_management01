@@ -112,6 +112,7 @@ class TaskOut(BaseModel):
     memo: str
     today_on: Optional[str]
     links: list[TaskLink]
+    done_at: Optional[str]
     created_at: str
     updated_at: str
 
