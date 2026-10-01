@@ -1,6 +1,6 @@
 import { api } from "./api.js";
 import { addDays, toInputValue, todayKey } from "./dates.js";
-import { el, isWebUrl } from "./ui.js";
+import { copyPath, el, linkKind } from "./ui.js";
 
 function defaultTimes() {
   const start = new Date();
@@ -25,15 +25,25 @@ export function initTaskForm({ onSaved }) {
 
   // リンク入力の 1 行（URL・表示名・開く・削除）
   function linkRow(link = { url: "", label: "" }) {
-    const url = el("input", { type: "url", class: "link-url", placeholder: "https://…", value: link.url, "aria-label": "URL" });
+    const url = el("input", { class: "link-url", placeholder: "https://…　C:\\…　\\\\サーバー\\…", value: link.url, "aria-label": "URL またはパス" });
     const label = el("input", { class: "link-label", placeholder: "表示名（任意）", value: link.label, "aria-label": "表示名" });
     const open = el("a", { class: "link-open", target: "_blank", rel: "noopener noreferrer", title: "新しいタブで開く" }, "開く");
+    // Web は「開く」、パスは「コピー」（ブラウザからは開けないため）
     const syncOpen = () => {
-      const valid = isWebUrl(url.value.trim());
-      if (valid) open.setAttribute("href", url.value.trim());
+      const value = cleanUrl(url.value);
+      const kind = linkKind(value);
+      if (kind === "web" || kind === "smb") open.setAttribute("href", value);
       else open.removeAttribute("href");
-      open.classList.toggle("disabled", !valid);
+      open.textContent = kind === "path" ? "コピー" : "開く";
+      open.title = kind === "path" ? "パスをコピー" : "新しいタブで開く";
+      open.classList.toggle("disabled", !kind);
     };
+    open.addEventListener("click", (e) => {
+      const value = cleanUrl(url.value);
+      if (linkKind(value) !== "path") return;
+      e.preventDefault();
+      copyPath(value);
+    });
     url.addEventListener("input", syncOpen);
     syncOpen();
     const row = el("li", {}, url, label, open,
@@ -41,10 +51,13 @@ export function initTaskForm({ onSaved }) {
     return row;
   }
 
+  // Windows の「パスのコピー」で付く前後の " を外す
+  const cleanUrl = (value) => value.trim().replace(/^"(.*)"$/, "$1").trim();
+
   function readLinks() {
     return [...linkList.querySelectorAll("li")]
       .map((li) => ({
-        url: li.querySelector(".link-url").value.trim(),
+        url: cleanUrl(li.querySelector(".link-url").value),
         label: li.querySelector(".link-label").value.trim(),
       }))
       .filter((link) => link.url);
@@ -131,9 +144,9 @@ export function initTaskForm({ onSaved }) {
       errorBox.textContent = "領域とタスク名は必須です";
       return;
     }
-    const badLink = payload.links.find((link) => !isWebUrl(link.url));
+    const badLink = payload.links.find((link) => !linkKind(link.url));
     if (badLink) {
-      errorBox.textContent = `リンクは http:// または https:// で始まる URL にしてください（${badLink.url}）`;
+      errorBox.textContent = `リンクは http(s)://、smb://、C:\\…、\\\\サーバー\\…、file:// のいずれかにしてください（${badLink.url}）`;
       return;
     }
     if (payload.due_at.slice(0, 10) < payload.start_at.slice(0, 10)) {

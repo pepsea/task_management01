@@ -248,7 +248,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .25); }
 
 /* トースト */
 .toast-area { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 6px; z-index: 10; }
-.toast { background: var(--text); color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 13px; }
+.toast { background: var(--text); color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 13px; white-space: pre-line; word-break: break-all; }
 
 /* 登録画面 */
 .settings-page { min-height: 100vh; background: var(--bg-soft); font-size: 14px; }

@@ -1,6 +1,6 @@
 import { api } from "./api.js";
 import { createSortable } from "./sortable.js";
-import { copyText, el, toast } from "./ui.js";
+import { copyPath, el, toast } from "./ui.js";
 
 // TODO 画面右上のリンクリスト。
 //   web（http/https）: 新しいタブで開く
@@ -41,14 +41,6 @@ function openableHref(link) {
   return null;
 }
 
-async function copyPath(link) {
-  if (await copyText(link.target)) {
-    toast("パスをコピーしました。エクスプローラーや Finder のアドレス欄に貼り付けて開いてください");
-  } else {
-    toast(`コピーできませんでした: ${link.target}`);
-  }
-}
-
 function linkLabel(link) {
   const text = link.title || link.target;
   const href = openableHref(link);
@@ -56,7 +48,7 @@ function linkLabel(link) {
   if (href) {
     return el("a", { ...attrs, href, ...(link.kind === "web" ? { target: "_blank", rel: "noopener noreferrer" } : {}) }, text);
   }
-  return el("button", { ...attrs, type: "button", title: `${link.target}\n（クリックでパスをコピー）`, onclick: () => copyPath(link) }, text);
+  return el("button", { ...attrs, type: "button", title: `${link.target}\n（クリックでパスをコピー）`, onclick: () => copyPath(link.target) }, text);
 }
 
 function render() {

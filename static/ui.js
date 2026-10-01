@@ -29,14 +29,40 @@ export function tagChip(tag, { onRemove } = {}) {
       : null);
 }
 
-// href に入れてよい URL か（http/https のみ。javascript: などは不可）
-export function isWebUrl(value) {
-  try {
-    const url = new URL(value);
-    return (url.protocol === "http:" || url.protocol === "https:") && Boolean(url.host) && !/\s/.test(value);
-  } catch {
-    return false;
+// リンク先の種類（サーバーの app/models.py の link_kind と同じ判定）。
+//   web: http(s)://  smb: smb://  path: C:\…  \\サーバー\…  //サーバー/…  file://…  それ以外は null
+export function linkKind(value) {
+  if (/^https?:\/\/[^\s/]+/i.test(value)) return "web";
+  if (/^smb:\/\/[^\s/]+/i.test(value)) return "smb";
+  if (/^([A-Za-z]:[\\/]|\\\\[^\\]|\/\/[^/]|file:\/\/\/?\S)/i.test(value)) return "path";
+  return null;
+}
+
+// パスを、エクスプローラーや Finder のアドレス欄に貼り付けられる形にする。
+//   file:///C:/a%20b → C:\a b、file://server/share → \\server\share、file:///Users/x → /Users/x
+//   前後の " は外す（Windows の「パスのコピー」で付く）
+export function pathForCopy(target) {
+  let path = target.trim().replace(/^"(.*)"$/, "$1");
+  const file = path.match(/^file:\/\/(.*)$/i);
+  if (file) {
+    let rest = file[1];
+    try {
+      rest = decodeURIComponent(rest);
+    } catch {
+      // %の並びが壊れているときはそのまま
+    }
+    if (/^\/[A-Za-z]:/.test(rest)) path = rest.slice(1).replaceAll("/", "\\");
+    else if (rest.startsWith("/")) path = rest;
+    else path = `\\\\${rest.replaceAll("/", "\\")}`;
   }
+  return path;
+}
+
+// パスをコピーして知らせる（ブラウザからはパスを直接開けないため）
+export async function copyPath(target) {
+  const path = pathForCopy(target);
+  if (await copyText(path)) toast(`パスをコピーしました。エクスプローラーや Finder のアドレス欄に貼り付けて開いてください\n${path}`);
+  else toast(`コピーできませんでした: ${path}`);
 }
 
 // 文字列をクリップボードにコピーする。成功したら true。

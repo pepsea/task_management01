@@ -184,6 +184,19 @@ def test_unsafe_or_invalid_link_rejected(client, url):
     assert r.status_code == 422
 
 
+@pytest.mark.parametrize("url", [
+    r"C:\Users\me\資料\計画 v2.xlsx", r"\\fileserver\共有\議事録", "file:///C:/work/a.txt", "smb://nas/share/doc",
+])
+def test_path_links_accepted(client, url):
+    t = make_task(client, links=[{"url": url, "label": "資料"}])
+    assert t["links"] == [{"url": url, "label": "資料"}]
+
+
+def test_path_link_quotes_from_copy_as_path_are_removed(client):
+    t = make_task(client, links=[{"url": '"C:\\work\\a b.txt"'}])
+    assert t["links"][0]["url"] == "C:\\work\\a b.txt"
+
+
 def test_link_url_is_stripped(client):
     t = make_task(client, links=[{"url": "  https://a.example/x  "}])
     assert t["links"][0]["url"] == "https://a.example/x"

@@ -28,17 +28,23 @@ class TaskLink(BaseModel):
     @field_validator("url")
     @classmethod
     def validate_url(cls, value: str) -> str:
-        # 画面では href にそのまま入れるので、javascript: などを防ぐため http/https だけを許可する
+        # Web（http/https）に加えて、社内サーバーや PC のパス（C:\… \\サーバー\… file://）と smb:// を受け付ける。
+        # Windows の「パスのコピー」で付く前後の " は外す。
+        # 画面で href に入れるのは http(s) と smb だけ（javascript: などは受け付けない）
         value = value.strip()
-        parts = urlsplit(value)
-        if (
-            parts.scheme not in ("http", "https")
-            or not parts.netloc
-            or any(c.isspace() for c in value)
-            or len(value) > 2000
-        ):
-            raise ValueError("リンクは http:// または https:// で始まる URL にしてください")
-        return value
+        if len(value) >= 2 and value[0] == value[-1] == '"':
+            value = value[1:-1].strip()
+        if len(value) > 2000 or any(c in value for c in "\r\n\t"):
+            raise ValueError("リンクが長すぎるか、改行が入っています")
+        if link_kind(value) == "web":
+            parts = urlsplit(value)
+            if parts.netloc and not any(c.isspace() for c in value):
+                return value
+        elif link_kind(value) in ("smb", "path"):
+            return value
+        raise ValueError(
+            "リンクは http(s)://、smb://、C:\\…、\\\\サーバー\\…、file:// のいずれかで入力してください"
+        )
 
 
 Links = Annotated[list[TaskLink], Field(max_length=20)]

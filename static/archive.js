@@ -1,7 +1,7 @@
 import { api } from "./api.js";
 import { formatDateLabel, formatMonthDay, formatStamp } from "./dates.js";
 import { copyNote, exportNote } from "./noteExport.js";
-import { el, tagChip, toast } from "./ui.js";
+import { copyPath, el, linkKind, tagChip, toast } from "./ui.js";
 
 const SEARCH_MS = 300;
 
@@ -82,7 +82,9 @@ function taskRow(task) {
     : el("div", { class: "archive-body empty" }, "（メモなし）");
   const links = task.links.length
     ? el("ul", { class: "archive-links" }, task.links.map((link) =>
-      el("li", {}, el("a", { href: link.url, target: "_blank", rel: "noopener noreferrer" }, link.label || link.url))))
+      el("li", {}, linkKind(link.url) === "path"
+        ? el("a", { href: "#", title: "クリックでパスをコピー", onclick: (e) => { e.preventDefault(); copyPath(link.url); } }, `📁 ${link.label || link.url}`)
+        : el("a", { href: link.url, target: "_blank", rel: "noopener noreferrer" }, link.label || link.url))))
     : null;
   return archiveRow({
     title: task.title,

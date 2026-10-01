@@ -1,5 +1,5 @@
 import { addDays, dayDiff, formatMonthDay, formatStamp, isWeekend, parseDate, parseDateTime, startOfDay, startOfWeek, toInputValue, todayKey } from "./dates.js";
-import { el, isWebUrl, pageZoom } from "./ui.js";
+import { copyPath, el, linkKind, pageZoom } from "./ui.js";
 
 // 1 列の単位ごとの設定。表示する列数は空き幅に minColWidth の列が何本入るかで決め、
 // minCount〜maxCount に収める（入りきらないときは横スクロール）。
@@ -79,24 +79,43 @@ function columnLabels(scale, column, index, previous) {
   return [index === 0 || d.getMonth() === 0 ? String(d.getFullYear()) : "", `${d.getMonth() + 1}月`];
 }
 
-// リンクの表示名。登録した表示名、なければ「ドメイン/…」
+// リンクの表示名。登録した表示名、なければ Web は「ドメイン/…」、パスは最後のフォルダ・ファイル名
 function linkText(link) {
   if (link.label) return link.label;
-  const url = new URL(link.url);
-  return url.pathname.length > 1 || url.search ? `${url.host}/…` : url.host;
+  if (linkKind(link.url) === "web") {
+    const url = new URL(link.url);
+    return url.pathname.length > 1 || url.search ? `${url.host}/…` : url.host;
+  }
+  return link.url.split(/[\\/]/).filter(Boolean).pop() ?? link.url;
 }
 
-// リンクがあればタスク名の下に並べる。クリックでそのリンクを新しいタブで開く（行の編集は開かない）
+// リンクがあればタスク名の下に並べる（行の編集は開かない）。
+// Web は新しいタブで、smb:// はそのまま開く。パスはブラウザから開けないので、クリックでコピーする
 function linkList(links) {
-  const usable = (links ?? []).filter((link) => isWebUrl(link.url));
+  const usable = (links ?? []).filter((link) => linkKind(link.url));
   if (!usable.length) return null;
-  return el("div", { class: "g-links" }, usable.map((link) => el("a", {
-    href: link.url,
-    target: "_blank",
-    rel: "noopener noreferrer",
-    title: link.label ? `${link.label}\n${link.url}` : link.url,
-    onclick: (e) => e.stopPropagation(),
-  }, `🔗 ${linkText(link)}`)));
+  return el("div", { class: "g-links" }, usable.map((link) => {
+    const kind = linkKind(link.url);
+    const title = link.label ? `${link.label}\n${link.url}` : link.url;
+    if (kind === "path") {
+      return el("a", {
+        href: "#",
+        class: "path-link",
+        title: `${title}\n（クリックでパスをコピー）`,
+        onclick: (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          copyPath(link.url);
+        },
+      }, `📁 ${linkText(link)}`);
+    }
+    return el("a", {
+      href: link.url,
+      ...(kind === "web" ? { target: "_blank", rel: "noopener noreferrer" } : {}),
+      title,
+      onclick: (e) => e.stopPropagation(),
+    }, `${kind === "smb" ? "🗂" : "🔗"} ${linkText(link)}`);
+  }));
 }
 
 // 土曜は "sat"、日曜は "sun"、平日は ""
