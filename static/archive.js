@@ -102,15 +102,25 @@ function taskRow(task) {
   });
 }
 
-function ideaRow(idea) {
+function markdownBody(html) {
+  const body = el("div", { class: "archive-body md-view" });
+  if (html) {
+    body.innerHTML = html; // サーバー側（nh3）で無害化済みの HTML
+    for (const a of body.querySelectorAll("a")) a.target = "_blank";
+  } else {
+    body.classList.add("empty");
+    body.textContent = "（本文なし）";
+  }
+  return body;
+}
+
+function ideaRow(idea, html) {
   return archiveRow({
     title: idea.title,
     tags: idea.tags,
     badge: idea.task_count > 0 ? el("span", { class: "badge", title: "タスク化済み" }, "✓") : null,
     archivedAt: idea.archived_at,
-    body: idea.body.trim()
-      ? el("div", { class: "archive-body" }, idea.body)
-      : el("div", { class: "archive-body empty" }, "（本文なし）"),
+    body: markdownBody(html),
     dates: `思いつき ${formatStamp(idea.created_at)} ・ 更新 ${formatStamp(idea.updated_at)} ・ アーカイブ ${formatStamp(idea.archived_at)}`,
     buttons: [
       restoreButton("戻す", () => api.updateIdea(idea.id, { archived: false }), `「${idea.title}」を保管庫に戻しました`),
@@ -121,14 +131,7 @@ function ideaRow(idea) {
 
 function noteRow(note, html) {
   const title = note.title || "無題";
-  const body = el("div", { class: "archive-body md-view" });
-  if (html) {
-    body.innerHTML = html; // サーバー側（nh3）で無害化済みの HTML
-    for (const a of body.querySelectorAll("a")) a.target = "_blank";
-  } else {
-    body.classList.add("empty");
-    body.textContent = "（本文なし）";
-  }
+  const body = markdownBody(html);
   return archiveRow({
     title: note.title,
     tags: note.tags,
@@ -185,7 +188,9 @@ async function load() {
       const { html } = notes.length ? await api.renderMarkdown(notes.map((n) => n.body)) : { html: [] };
       rows = notes.map((note, i) => noteRow(note, html[i]));
     } else {
-      rows = (await api.listIdeas(q, tagFilter.value, true)).map(ideaRow);
+      const ideas = await api.listIdeas(q, tagFilter.value, true);
+      const { html } = ideas.length ? await api.renderMarkdown(ideas.map((i) => i.body)) : { html: [] };
+      rows = ideas.map((idea, i) => ideaRow(idea, html[i]));
     }
     const label = KINDS[kind];
     const filtered = q || (kind !== "tasks" && tagFilter.value);

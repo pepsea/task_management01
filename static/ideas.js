@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import { createBlockEditor } from "./blockEditor.js";
 import { formatStamp } from "./dates.js";
 import { createSortable } from "./sortable.js";
 import { el, tagChip, toast } from "./ui.js";
@@ -11,7 +12,6 @@ export function initIdeas({ onMakeTask }) {
   const search = document.getElementById("idea-search");
   const editor = document.getElementById("idea-editor");
   const titleInput = document.getElementById("idea-title");
-  const bodyInput = document.getElementById("idea-body");
   const status = document.getElementById("idea-status");
   const tagFilter = document.getElementById("idea-tag-filter");
   const tagChips = document.getElementById("idea-tags");
@@ -29,6 +29,11 @@ export function initIdeas({ onMakeTask }) {
   let saveTimer = null;
   let searchTimer = null;
   let selectedTags = [];
+
+  // 本文はメモ帳と同じ Markdown のブロック編集
+  const bodyEditor = createBlockEditor(document.getElementById("idea-body"), {
+    onInput: () => scheduleSave(),
+  });
 
   function renderList() {
     if (!ideas.length) {
@@ -134,7 +139,7 @@ export function initIdeas({ onMakeTask }) {
       return;
     }
     try {
-      const updated = await api.updateIdea(selectedId, { title, body: bodyInput.value });
+      const updated = await api.updateIdea(selectedId, { title, body: bodyEditor.value() });
       status.textContent = "保存済み";
       const index = ideas.findIndex((i) => i.id === updated.id);
       if (index >= 0) {
@@ -166,7 +171,7 @@ export function initIdeas({ onMakeTask }) {
       const idea = await api.getIdea(id);
       selectedId = idea.id;
       titleInput.value = idea.title;
-      bodyInput.value = idea.body;
+      bodyEditor.setValue(idea.body);
       document.getElementById("idea-stamp").textContent =
         `思いつき ${formatStamp(idea.created_at)} ・ 更新 ${formatStamp(idea.updated_at)}`;
       selectedTags = idea.tags;
@@ -197,10 +202,10 @@ export function initIdeas({ onMakeTask }) {
 
   document.getElementById("idea-close").addEventListener("click", close);
   editor.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !e.isComposing) close();
+    // 本文のブロック編集中の Esc は編集を終えるだけで、アイディアは閉じない
+    if (e.key === "Escape" && !e.isComposing && !e.target.closest(".md-editor")) close();
   });
   titleInput.addEventListener("input", scheduleSave);
-  bodyInput.addEventListener("input", scheduleSave);
   tagFilter.addEventListener("change", refresh);
   tagInput.addEventListener("keydown", (e) => {
     // 日本語入力の変換確定の Enter では追加しない
@@ -233,7 +238,7 @@ export function initIdeas({ onMakeTask }) {
       await reveal(idea.id);
       toast(`「${idea.title}」を登録しました`);
       // 続けて本文を書けるように本文欄へ移る
-      bodyInput.focus();
+      bodyEditor.startWriting();
     } catch (err) {
       toast(err.message);
     }
