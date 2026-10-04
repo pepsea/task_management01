@@ -15,6 +15,7 @@ const SCALES = {
 // 見出しの右端をドラッグすると幅を変えられ、幅と折りたたみの状態はブラウザ（localStorage）に保存する
 const TABLE_COLUMNS = [
   { key: "today", label: "☀", width: 32, resizable: false },
+  { key: "area", label: "領域", width: 90 },
   { key: "related", label: "関連項目", width: 100 },
   { key: "title", label: "タスク名", width: 240 },
   { key: "created", label: "登録", width: 60, detail: true },
@@ -137,6 +138,7 @@ function sortRank(task, today) {
 const textOrder = (a, b) => (a === "") - (b === "") || a.localeCompare(b, "ja");
 const COLUMN_SORTS = {
   today: (a, b, today) => (b.today_on === today) - (a.today_on === today),
+  area: (a, b) => textOrder(a.area, b.area),
   related: (a, b) => textOrder(a.related, b.related),
   title: (a, b) => textOrder(a.title, b.title),
   // 登録日は表示は日付だけだが、並べ替えは時刻まで見る
@@ -507,6 +509,8 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       el("div", { class: "g-cells" }, visibleColumns().map((column) => {
         switch (column.key) {
           case "today": return el("div", { class: "g-today-cell" }, todayButton);
+          case "area": return el("div", { title: task.area },
+            el("span", { class: "area-chip", style: `background:${areaColors[task.area] ?? "#9ca3af"}` }, task.area));
           case "related": return el("div", { title: task.related }, task.related);
           case "title": {
             const links = linkList(task.links);
