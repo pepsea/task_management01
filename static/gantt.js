@@ -46,7 +46,8 @@ function saveTableSettings(settings) {
 // ディシジョン名 1 件ぶんのおおよその表示幅（重なり判定用）と 1 段の高さ
 const DECISION_LABEL_WIDTH = 122;
 const DECISION_LANE_HEIGHT = 20;
-const DECISION_LANES = 1;
+// ディシジョンの行は最大 2 段（重ならなければ 1 段）
+const DECISION_MAX_LANES = 2;
 const DUE_SOON_DAYS = 2;
 const PRIORITY_LABEL = { high: "高", mid: "中", low: "低" };
 
@@ -335,16 +336,19 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       .map((d) => ({ d, index: layout.dayIndex(parseDate(d.date)) }))
       .filter(({ index }) => layout.inRange(index))
       .sort((a, b) => a.index - b.index || (a.d.time ?? "").localeCompare(b.d.time ?? ""));
-    // 行の高さは DECISION_LANES 段で固定（今は 1 段）。名前が重なるときは重ねて置く（◆ にマウスを乗せると名前が見える）
-    const laneEnds = Array(DECISION_LANES).fill(-Infinity);
+    // 1 件ずつ、名前が重ならない上の段に置く。重なるものは 2 段目へ（行の高さも 2 段になる）。
+    // 2 段とも埋まっているときは、空くのが早い方の段に重ねて置く（◆ にマウスを乗せると名前が見える）
+    const laneEnds = [];
     const placed = visible.map(({ d, index }) => {
       const left = centerOf(index, layout);
       let lane = laneEnds.findIndex((end) => left - 7 >= end);
-      if (lane === -1) lane = laneEnds.indexOf(Math.min(...laneEnds));
+      if (lane === -1) {
+        lane = laneEnds.length < DECISION_MAX_LANES ? laneEnds.length : laneEnds.indexOf(Math.min(...laneEnds));
+      }
       laneEnds[lane] = left - 7 + DECISION_LABEL_WIDTH;
       return { d, left, lane };
     });
-    const lanes = DECISION_LANES;
+    const lanes = Math.max(laneEnds.length, 1);
     const track = el("div", {
       class: "g-track g-decision-track",
       style: `width:${layout.width}px;height:${lanes * DECISION_LANE_HEIGHT + 6}px`,
