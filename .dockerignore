@@ -1,4 +1,8 @@
 .git
+# バージョン表示のため、.git のうちブランチの位置だけは入れる
+!.git/HEAD
+!.git/refs
+!.git/packed-refs
 .venv
 .claude
 .pytest_cache

@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app import auth
 from app.db import connect, init_db
+from app.version import read_version
 from app.routers import auth as auth_router
 from app.routers import backups, brainstorm, decisions, export, ideas, links, masters, notes, recurring, tags, tasks
 
@@ -66,6 +67,12 @@ async def revalidate_static_files(request: Request, call_next):
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/version")
+def version():
+    """画面に出すバージョン（Mac と Linux サーバーで同じものが動いているかを見分ける用）。"""
+    return read_version()
 
 
 app.include_router(auth_router.router)

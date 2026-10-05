@@ -17,6 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 COPY static ./static
+# バージョン表示用: コミット番号（.git の HEAD・refs）と、イメージを作った日時
+COPY .git ./.git
+RUN date '+%Y-%m-%d %H:%M' > /app/BUILD_TIME
 
 # アプリは root 以外のユーザー（appuser）で動かす。データは /app/data（docker-compose.yml でホストの ./data をつなぐ）。
 # 起動時に docker-entrypoint.sh が /app/data の書き込み権限を整えてから appuser に切り替える

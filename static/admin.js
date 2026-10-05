@@ -4,6 +4,14 @@ import { el, saveZoom, savedZoom, toast, ZOOM_CHOICES } from "./ui.js";
 
 // SETTING/DATA 画面: 表示・バックアップ・データのエクスポート（リンクのみ）・パスワード変更
 
+// バージョン（コミット番号と、アプリを作った日時）
+api.version()
+  .then(({ commit, built_at: builtAt }) => {
+    document.getElementById("version-commit").textContent = commit ?? "不明";
+    document.getElementById("version-built").textContent = builtAt ?? "不明（Docker を使わずに動かしている）";
+  })
+  .catch(() => {});
+
 // 画面の大きさ（このブラウザに保存）
 const zoomSelect = document.getElementById("zoom-select");
 zoomSelect.replaceChildren(...ZOOM_CHOICES.map((z) => el("option", { value: z }, `${z}%`)));

@@ -62,6 +62,7 @@ export const api = {
   deleteNote: (id) => request("DELETE", `/api/notes/${id}`),
   renderMarkdown: (blocks) => request("POST", "/api/markdown", { blocks }),
   me: () => request("GET", "/api/auth/me"),
+  version: () => request("GET", "/api/version"),
   logout: () => request("POST", "/api/auth/logout"),
   changePassword: (current, next) => request("POST", "/api/auth/password", { current, new: next }),
   listBackups: () => request("GET", "/api/backups"),
