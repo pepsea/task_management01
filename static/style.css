@@ -73,7 +73,7 @@ h2 { font-size: 14px; margin: 0; }
   border-right: 1px solid var(--line);
 }
 /* 行はできるだけ詰めて、多くのタスクが見えるようにする */
-.g-cells > * { padding: 1px 6px; font-size: 13px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-cells > * { padding: 1px 6px; font-size: 14px; line-height: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .g-head { position: sticky; top: 0; z-index: 2; background: var(--bg); font-weight: 600; }
 .g-head .g-cells { z-index: 3; }
 .g-head-cell { position: relative; display: flex; align-items: center; gap: 4px; }
@@ -106,7 +106,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .g-grid-line { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
 .g-cells > .g-today-cell { padding: 1px 0; text-align: center; overflow: visible; }
 .today-toggle {
-  border: none; background: none; padding: 0 2px; font-size: 13px; line-height: 18px;
+  border: none; background: none; padding: 0 2px; font-size: 14px; line-height: 19px;
   filter: grayscale(1); opacity: .25;
 }
 .today-toggle:hover { background: none; opacity: .6; }
