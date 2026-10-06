@@ -72,7 +72,8 @@ h2 { font-size: 14px; margin: 0; }
   position: sticky; left: 0; z-index: 1; background: var(--bg);
   border-right: 1px solid var(--line);
 }
-.g-cells > * { padding: 4px 6px; font-size: 14px; line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 行はできるだけ詰めて、多くのタスクが見えるようにする */
+.g-cells > * { padding: 1px 6px; font-size: 13px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .g-head { position: sticky; top: 0; z-index: 2; background: var(--bg); font-weight: 600; }
 .g-head .g-cells { z-index: 3; }
 .g-head-cell { position: relative; display: flex; align-items: center; gap: 4px; }
@@ -103,9 +104,9 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .g-weekend-band.sun { background: rgba(220, 38, 38, .12); }
 .g-col.is-today { color: var(--accent); font-weight: 700; }
 .g-grid-line { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
-.g-cells > .g-today-cell { padding: 4px 0; text-align: center; overflow: visible; }
+.g-cells > .g-today-cell { padding: 1px 0; text-align: center; overflow: visible; }
 .today-toggle {
-  border: none; background: none; padding: 0 2px; font-size: 15px; line-height: 20px;
+  border: none; background: none; padding: 0 2px; font-size: 13px; line-height: 18px;
   filter: grayscale(1); opacity: .25;
 }
 .today-toggle:hover { background: none; opacity: .6; }
@@ -117,11 +118,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .today-filter.on { background: var(--today-bg); border-color: var(--today-line); font-weight: 600; }
 /* タスク名。リンクがあるときだけ 2 行にして、2 行目にリンクを小さく細く並べる */
 .g-cells > .g-title-cell { display: flex; flex-direction: column; justify-content: center; }
-.g-cells > .g-title-cell.has-links { padding-top: 2px; padding-bottom: 2px; }
+.g-cells > .g-title-cell.has-links { padding-top: 0; padding-bottom: 0; }
+.g-title-cell.has-links .g-title { line-height: 16px; }
 .g-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .g-links { min-width: 0; display: flex; gap: 8px; overflow: hidden; }
 .g-links a {
-  flex: 0 1 auto; min-width: 0; font-size: 10px; line-height: 12px; font-weight: 300; color: var(--accent); text-decoration: none;
+  flex: 0 1 auto; min-width: 0; font-size: 10px; line-height: 11px; font-weight: 300; color: var(--accent); text-decoration: none;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .g-links a:hover { text-decoration: underline; }
@@ -136,13 +138,13 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .link-rows button { padding: 2px 8px; }
 .link-add { align-self: flex-start; font-size: 12px; }
 .area-chip {
-  display: inline-block; max-width: 100%; padding: 1px 7px; border-radius: 999px; color: #fff;
-  font-size: 12px; line-height: 16px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
+  display: inline-block; max-width: 100%; padding: 0 7px; border-radius: 999px; color: #fff;
+  font-size: 11px; line-height: 15px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
 }
 /* バーは行の上下の中央に置く（リンクがあって 2 行の行でも） */
-.g-bar { position: absolute; top: calc(50% - 8px); height: 16px; border-radius: 4px; }
+.g-bar { position: absolute; top: calc(50% - 7px); height: 14px; border-radius: 4px; }
 .g-bar-label {
-  display: block; padding: 0 6px; font-size: 11px; line-height: 16px; color: #fff; font-weight: 600;
+  display: block; padding: 0 6px; font-size: 10px; line-height: 14px; color: #fff; font-weight: 600;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 2px rgba(0, 0, 0, .35); pointer-events: none;
 }
 .task-search { width: 120px; padding: 3px 8px; font-size: 13px; }
@@ -160,7 +162,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .g-row.overdue .g-bar { outline: 2px solid var(--danger); outline-offset: 1px; }
 /* 期限: 残り 2 日以内は赤い背景、期限切れはさらに濃い赤の背景（どちらも白い文字） */
 .g-row.due-soon .due-mark, .g-row.overdue .due-mark {
-  display: inline-block; padding: 0 6px; border-radius: 4px; color: #fff; font-weight: 700; line-height: 18px;
+  display: inline-block; padding: 0 6px; border-radius: 4px; color: #fff; font-weight: 700; line-height: 16px;
 }
 .g-row.due-soon .due-mark { background: #ef4444; }
 .g-row.overdue .due-mark { background: #991b1b; }
