@@ -106,3 +106,19 @@ def test_migration_fills_done_at_for_existing_done_tasks(client):
         _migrate(conn)
         row = conn.execute("SELECT done_at, updated_at FROM tasks WHERE id = ?", (t["id"],)).fetchone()
     assert row[0] == row[1]
+
+
+def test_todo_csv_export(client):
+    late = make_task(client, title="後", due_at="2026-10-09T18:00", priority="low")
+    early = make_task(client, title="先", due_at="2026-10-03T18:00")
+    done = make_task(client, title="完了済み", done=True)
+    old = make_task(client, title="アーカイブ済み", done=True)
+    set_done_at(old["id"], datetime.now() - timedelta(days=5))
+    r = client.get("/api/tasks.csv")
+    assert r.status_code == 200
+    assert r.content.startswith(b"\xef\xbb\xbf")
+    assert "attachment" in r.headers["content-disposition"]
+    rows = list(csv.reader(io.StringIO(r.content.decode("utf-8-sig"))))
+    assert rows[0][:3] == ["領域", "関連項目", "タスク名"]
+    # 未完了は期限の近い順、完了は最後。アーカイブに移ったものは入れない
+    assert [row[2] for row in rows[1:]] == ["先", "後", "完了済み"]

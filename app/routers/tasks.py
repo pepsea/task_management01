@@ -74,6 +74,25 @@ def list_tasks(area: str | None = None, conn: sqlite3.Connection = Depends(get_c
     return [_task_from_row(r) for r in rows]
 
 
+PRIORITY_RANK = {"high": 0, "mid": 1, "low": 2}
+
+
+@router.get("/tasks.csv")
+def export_tasks(conn: sqlite3.Connection = Depends(get_conn)):
+    """TODO に表示しているタスク（アーカイブに移ったものを除く）を CSV で。
+    未完了 → 完了の順に、それぞれ期限の近い順 → 優先度 → 登録の古い順。"""
+    tasks = sorted(
+        list_tasks(conn=conn),
+        key=lambda t: (t["done"], t["due_at"][:10], PRIORITY_RANK[t["priority"]], t["created_at"], t["id"]),
+    )
+    filename = f"tasks-{datetime.now():%Y%m%d}.csv"
+    return Response(
+        content=tasks_csv(tasks),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 def _archived_tasks(conn: sqlite3.Connection, q: str = "") -> list[dict]:
     delete_expired_tasks(conn)
     sql = "SELECT * FROM tasks WHERE done = 1 AND done_at IS NOT NULL AND done_at < ?"
