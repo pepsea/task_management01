@@ -169,7 +169,8 @@ function sortTasks(tasks, sort) {
 }
 
 export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditDecision, onChangeDates }) {
-  let scale = "day";
+  // 最初は週表示
+  let scale = "week";
   let anchor = startOfWeek(new Date());
   let tasks = [];
   let decisions = [];
