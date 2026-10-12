@@ -1,6 +1,10 @@
 async function request(method, path, body) {
   const options = { method, headers: {} };
-  if (body !== undefined) {
+  if (body instanceof Blob) {
+    // ファイルはそのまま送る
+    options.headers["Content-Type"] = "application/octet-stream";
+    options.body = body;
+  } else if (body !== undefined) {
     options.headers["Content-Type"] = "application/json";
     options.body = JSON.stringify(body);
   }
@@ -67,6 +71,7 @@ export const api = {
   changePassword: (current, next) => request("POST", "/api/auth/password", { current, new: next }),
   listBackups: () => request("GET", "/api/backups"),
   createBackup: () => request("POST", "/api/backups"),
+  restoreBackupFile: (file) => request("POST", "/api/backups/upload", file),
   restoreBackup: (name) => request("POST", `/api/backups/${encodeURIComponent(name)}/restore`),
   // 誤って消さないよう、確認として同じ名前を confirm に付ける（サーバー側で照合）
   deleteBackup: (name) =>

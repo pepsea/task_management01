@@ -29,7 +29,11 @@
         復元すると、すべてのデータ（タスク・アイディア・メモなど）がその時点に戻ります。
         戻す前の状態も自動でバックアップされるので、やり直せます。ログインのアカウントとパスワードは戻りません。
       </p>
-      <button id="backup-create" type="button" class="primary backup-create">＋ 今すぐバックアップ</button>
+      <div class="backup-actions">
+        <button id="backup-create" type="button" class="primary backup-create">＋ 今すぐバックアップ</button>
+        <button id="backup-upload" type="button" title="⬇ でダウンロードしておいたバックアップのファイル（.db）を選んで、その時点に戻す">📂 ファイルから復元</button>
+        <input id="backup-file" type="file" accept=".db" hidden>
+      </div>
       <ul id="backup-list" class="backup-list"></ul>
     </section>
 

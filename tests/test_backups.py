@@ -165,3 +165,46 @@ def test_backups_older_than_30_days_are_deleted(client, tmp_path):
     names = [x["name"] for x in backups(client)]
     assert recent.name in names and old.name not in names
     assert not old.exists() and recent.exists()
+
+
+# --- ダウンロードしたバックアップのファイルを送って復元 ---
+
+def upload(client, data: bytes):
+    return client.post("/api/backups/upload", content=data, headers={"Content-Type": "application/octet-stream"})
+
+
+def test_restore_from_uploaded_file(client):
+    register(client, "仕事")
+    add_task(client, "ファイルの時点のタスク")
+    b = create(client)
+    data = client.get(f"/api/backups/{b['name']}/download").content
+    for t in client.get("/api/tasks").json():
+        client.delete(f"/api/tasks/{t['id']}")
+    add_task(client, "後から作ったタスク")
+    r = upload(client, data)
+    assert r.status_code == 200, r.text
+    assert titles(client) == ["ファイルの時点のタスク"]
+    # 戻す前の状態は自動で残る
+    assert r.json()["before_restore"]["kind"] == "before-restore"
+    assert "before-restore" in [x["kind"] for x in backups(client)]
+    # ログインしたまま
+    assert client.get("/api/tasks").status_code == 200
+
+
+@pytest.mark.parametrize("data", [b"", b"not a database", b"SQLite format 3\x00" + b"\x00" * 100])
+def test_upload_rejects_non_backup_files(client, data):
+    register(client, "仕事")
+    add_task(client, "残るタスク")
+    r = upload(client, data)
+    assert r.status_code == 422
+    assert titles(client) == ["残るタスク"]
+
+
+def test_upload_rejects_other_sqlite_database(client, tmp_path):
+    other = tmp_path / "other.db"
+    with sqlite3.connect(other) as conn:
+        conn.execute("CREATE TABLE something (id INTEGER)")
+    conn.close()
+    r = upload(client, other.read_bytes())
+    assert r.status_code == 422
+    assert "このアプリ" in r.json()["detail"]

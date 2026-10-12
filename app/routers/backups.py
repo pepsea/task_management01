@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 
 from app import backup
@@ -21,6 +21,19 @@ def list_backups():
 @router.post("", status_code=201)
 def create_backup():
     return backup.create_backup()
+
+
+@router.post("/upload")
+async def restore_uploaded(request: Request):
+    """ダウンロードしておいたバックアップのファイルを送ってもらい、その中身に戻す（本文はファイルそのもの）。"""
+    data = await request.body()
+    if len(data) > backup.MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="ファイルが大きすぎます（200 MB まで）")
+    try:
+        before = backup.restore_uploaded(data)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    return {"before_restore": before}
 
 
 @router.post("/{name}/restore")

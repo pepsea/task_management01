@@ -115,4 +115,21 @@ document.getElementById("backup-create").addEventListener("click", async () => {
   }
 });
 
+// ダウンロードしておいたバックアップのファイル（.db）を選んで復元する（別のパソコン・サーバーのデータを移すときにも使える）
+const backupFile = document.getElementById("backup-file");
+document.getElementById("backup-upload").addEventListener("click", () => backupFile.click());
+backupFile.addEventListener("change", async () => {
+  const file = backupFile.files[0];
+  backupFile.value = "";
+  if (!file) return;
+  if (!confirm(`「${file.name}」の内容に戻しますか？\n\nすべてのデータ（タスク・アイディア・メモなど）がこのファイルの時点に戻ります。今の状態は「復元前の自動保存」として残ります。ログインのアカウントとパスワードは変わりません。`)) return;
+  try {
+    await api.restoreBackupFile(file);
+    toast(`「${file.name}」から復元しました`);
+    await loadBackups();
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
 loadBackups();

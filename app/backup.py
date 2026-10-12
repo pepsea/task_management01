@@ -95,6 +95,32 @@ def _columns(conn: sqlite3.Connection, schema: str, table: str) -> list[str]:
     return [row[1] for row in conn.execute(f"PRAGMA {schema}.table_info({table})")]
 
 
+# アップロードできるファイルの大きさの上限
+MAX_UPLOAD_BYTES = 200 * 1024 * 1024
+# このアプリのデータベースなら必ずある表
+REQUIRED_TABLES = {"tasks", "ideas"}
+
+
+def restore_uploaded(data: bytes) -> dict:
+    """ダウンロードしておいたバックアップのファイル（.db）の中身に戻す。
+    SQLite のファイルで、このアプリの表があり、壊れていないものだけを受け付ける（だめなら ValueError）。"""
+    if not data.startswith(b"SQLite format 3\x00"):
+        raise ValueError("バックアップのファイル（.db）ではありません")
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "upload.db"
+        path.write_bytes(data)
+        try:
+            with closing(sqlite3.connect(path)) as conn:
+                if conn.execute("PRAGMA quick_check").fetchone()[0] != "ok":
+                    raise ValueError("ファイルが壊れているため復元できません")
+                tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+        except sqlite3.DatabaseError:
+            raise ValueError("ファイルが壊れているため復元できません") from None
+        if not REQUIRED_TABLES <= tables:
+            raise ValueError("このアプリのバックアップのファイルではありません")
+        return restore_backup(path)
+
+
 def restore_backup(path: Path) -> dict:
     """バックアップの時点のデータに戻す。戻す前の状態は自動でバックアップしておく。"""
     before = create_backup("before-restore")
