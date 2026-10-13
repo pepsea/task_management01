@@ -223,6 +223,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
 
   // 見出しのクリックで並べ替え: 昇順 → 降順 → 標準の並び
   function toggleSort(column) {
+    keptOrder = null;
     const current = table.sort?.key === column.key ? table.sort.dir : null;
     table.sort = current === null ? { key: column.key, dir: "asc" }
       : current === "asc" ? { key: column.key, dir: "desc" } : null;
@@ -433,6 +434,7 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       const patch = {};
       if (edge !== "end") patch.start_at = toInputValue(addDays(start, days));
       if (edge !== "start") patch.due_at = toInputValue(addDays(due, days));
+      keptOrder = orderedTasks().map((t) => t.id);
       onChangeDates(task, patch);
     };
     tip.textContent = label(0);
@@ -539,6 +541,22 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
       track);
   }
 
+  // バーをドラッグして日付を変えたときは、並び順をその場で変えない（行が飛ばないように）。
+  // keptOrder にドラッグ時点の並び（タスクの id の順）を覚えておき、clearKeptOrder（タスクの追加・編集、
+  // 完了・☀ の切り替え、見出しでの並べ替え、ページの再読み込み）までその順で表示する
+  let keptOrder = null;
+
+  function orderedTasks() {
+    const sorted = sortTasks(tasks, table.sort);
+    if (!keptOrder) return sorted;
+    const position = new Map(keptOrder.map((id, i) => [id, i]));
+    // 覚えた順にないタスク（新しく増えたもの）は、標準の並びで後ろに付ける
+    return sorted
+      .map((t, i) => ({ t, key: position.has(t.id) ? position.get(t.id) : keptOrder.length + i }))
+      .sort((a, b) => a.key - b.key)
+      .map(({ t }) => t);
+  }
+
   function render(nextTasks = tasks, nextDecisions = decisions) {
     tasks = nextTasks;
     decisions = nextDecisions;
@@ -549,12 +567,16 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
     // 列が細いときは日付見出しの文字を小さくする（style.css の .narrow-cols）
     root.classList.toggle("narrow-cols", layout.pxPerDay * SCALES[scale].nominalDays < 30);
     const now = new Date();
-    const rows = sortTasks(tasks, table.sort).map((t) => taskRow(t, layout, now));
+    const rows = orderedTasks().map((t) => taskRow(t, layout, now));
+    // 描き直してもスクロールの位置はそのままにする
+    const { scrollTop, scrollLeft } = root;
     root.replaceChildren(
       headerRow(layout),
       decisionRow(layout),
       ...(rows.length ? rows : [el("div", { class: "g-empty" }, "タスクがありません。「＋ タスク」から追加できます。")]),
     );
+    root.scrollTop = scrollTop;
+    root.scrollLeft = scrollLeft;
   }
 
   // 表示期間を units 単位（日表示は 1 日、週表示は 1 週、月表示は 1 か月）ずらす
@@ -643,6 +665,9 @@ export function createGantt(root, { onEdit, onToggleDone, onToggleToday, onEditD
 
   return {
     render,
+    clearKeptOrder() {
+      keptOrder = null;
+    },
     setAreaColors(colors) {
       areaColors = colors;
     },

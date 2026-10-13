@@ -21,6 +21,7 @@ const gantt = createGantt(document.getElementById("gantt"), {
     } catch (err) {
       toast(err.message);
     }
+    gantt.clearKeptOrder();
     await loadTasks();
   },
   onToggleToday: async (task, on) => {
@@ -29,6 +30,7 @@ const gantt = createGantt(document.getElementById("gantt"), {
     } catch (err) {
       toast(err.message);
     }
+    gantt.clearKeptOrder();
     await loadTasks();
   },
   onChangeDates: async (task, patch) => {
@@ -44,12 +46,18 @@ const gantt = createGantt(document.getElementById("gantt"), {
 
 const taskForm = initTaskForm({
   onSaved: async () => {
+    gantt.clearKeptOrder();
     await loadTasks();
   },
 });
 
 const decisionForm = initDecisionForm({ onSaved: () => loadDecisions() });
-const recurringForm = initRecurringForm({ onSaved: () => loadTasks() });
+const recurringForm = initRecurringForm({
+  onSaved: () => {
+    gantt.clearKeptOrder();
+    return loadTasks();
+  },
+});
 
 initBrainstorm({
   onPromoted: (idea) => toast(`「${idea.title}」をアイディア保管庫に移しました`),
