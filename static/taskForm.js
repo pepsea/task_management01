@@ -2,10 +2,13 @@ import { api } from "./api.js";
 import { addDays, toInputValue, todayKey } from "./dates.js";
 import { copyPath, el, linkKind } from "./ui.js";
 
+// 新しいタスクの初期値: 開始は今日、期限は 3 日後
+const DEFAULT_DUE_DAYS = 3;
+
 function defaultTimes() {
   const start = new Date();
   start.setHours(9, 0, 0, 0);
-  const due = addDays(start, 7);
+  const due = addDays(start, DEFAULT_DUE_DAYS);
   due.setHours(18, 0, 0, 0);
   return { start_at: toInputValue(start), due_at: toInputValue(due) };
 }
